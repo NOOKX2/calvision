@@ -54,3 +54,4 @@ lib/
   dify/             # Dify client
   nutrition/        # TDEE & quota
 ```
+# calvision

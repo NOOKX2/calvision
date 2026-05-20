@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: calvision
+      POSTGRES_PASSWORD: calvision
+      POSTGRES_DB: calvision
+    ports:
+      - "5433:5432"
+    volumes:
+      - calvision_pg_data:/var/lib/postgresql
+
+volumes:
+  calvision_pg_data:

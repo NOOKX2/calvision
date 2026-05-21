@@ -4,10 +4,17 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:docker": "next dev --hostname 0.0.0.0 --port 3000",
+    "docker:dev": "docker compose up --build",
+    "docker:dev:down": "docker compose down",
+    "docker:studio": "docker compose up -d studio",
+    "docker:studio:logs": "docker compose logs -f studio",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
+    "db:migrate": "bun run lib/db/migrate.ts",
+    "db:baseline": "bun run scripts/db-baseline.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
   },

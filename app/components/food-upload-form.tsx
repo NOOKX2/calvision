@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { Camera } from "lucide-react";
+import { useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { Camera, ImagePlus } from "lucide-react";
 
 import {
   analyzeAndLogMeal,
@@ -15,7 +15,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
@@ -26,22 +25,114 @@ type FoodUploadFormProps = {
   hero?: boolean;
 };
 
+function isImageFile(file: File) {
+  return file.type.startsWith("image/");
+}
+
 export function FoodUploadForm({ disabled, hero }: FoodUploadFormProps) {
   const [state, formAction, pending] = useActionState(
     analyzeAndLogMeal,
     initialState,
   );
+  const inputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [hasFile, setHasFile] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [fileHint, setFileHint] = useState<string | null>(null);
+
+  const applyFile = useCallback((file: File) => {
+    if (!isImageFile(file)) {
+      setFileHint("กรุณาใช้ไฟล์รูปภาพเท่านั้น");
+      return;
+    }
+
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    if (inputRef.current) {
+      inputRef.current.files = dt.files;
+    }
+
+    setHasFile(true);
+    setFileHint(file.name);
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  useEffect(() => {
+    if (disabled) return;
+
+    function handlePaste(event: ClipboardEvent) {
+      const items = event.clipboardData?.items;
+      if (!items) return;
+
+      for (const item of items) {
+        if (!item.type.startsWith("image/")) continue;
+        const file = item.getAsFile();
+        if (file) {
+          event.preventDefault();
+          applyFile(file);
+          break;
+        }
+      }
+    }
+
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, [applyFile, disabled]);
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) {
-      setPreviewUrl(null);
+      setHasFile(false);
+      setFileHint(null);
+      setPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
       return;
     }
 
-    setPreviewUrl(URL.createObjectURL(file));
+    applyFile(file);
   }
+
+  function handleDragOver(event: React.DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!disabled && !pending) setIsDragging(true);
+  }
+
+  function handleDragLeave(event: React.DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(false);
+  }
+
+  function handleDrop(event: React.DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(false);
+    if (disabled || pending) return;
+
+    const file = event.dataTransfer.files?.[0];
+    if (file) applyFile(file);
+  }
+
+  const dropZoneClassName = cn(
+    "relative rounded-2xl border-2 border-dashed transition-colors",
+    hero ? "p-6 sm:p-8" : "p-5",
+    isDragging
+      ? "border-zinc-900 bg-white"
+      : "border-zinc-200 bg-zinc-50/50 hover:border-zinc-300 hover:bg-white/80",
+    (disabled || pending) && "pointer-events-none opacity-60",
+  );
 
   return (
     <Card
@@ -69,29 +160,71 @@ export function FoodUploadForm({ disabled, hero }: FoodUploadFormProps) {
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-5">
-          <div
-            className={cn(
-              "space-y-2",
-              hero &&
-                "rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50/50 p-5 transition-colors focus-within:border-zinc-400 focus-within:bg-white",
-            )}
-          >
-            <Label htmlFor="image" className={cn(hero && "text-sm text-zinc-600")}>
-              {hero ? "เลือกรูปอาหารของคุณ" : "รูปภาพอาหาร"}
+          <div className="space-y-2">
+            <Label
+              htmlFor="image"
+              className={cn(hero && "text-sm text-zinc-600")}
+            >
+              {hero ? "รูปอาหาร" : "รูปภาพอาหาร"}
             </Label>
-            <Input
-              id="image"
-              name="image"
-              type="file"
-              accept="image/*"
-              disabled={disabled || pending}
-              onChange={handleFileChange}
-              required
-              className={cn(
-                "file:rounded-lg file:bg-zinc-200/80 file:px-3 file:py-1 file:text-xs file:font-medium file:text-zinc-700",
-                hero && "h-12 border-0 bg-white/80",
-              )}
-            />
+
+            <div
+              role="button"
+              tabIndex={disabled || pending ? -1 : 0}
+              aria-label="วางรูปอาหาร ลากไฟล์ หรือวางจากคลิปบอร์ด"
+              className={dropZoneClassName}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => {
+                if (!disabled && !pending) inputRef.current?.click();
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  inputRef.current?.click();
+                }
+              }}
+            >
+              <input
+                ref={inputRef}
+                id="image"
+                name="image"
+                type="file"
+                accept="image/*"
+                disabled={disabled || pending}
+                onChange={handleFileChange}
+                required={!hasFile}
+                className="sr-only"
+              />
+
+              <div className="flex flex-col items-center gap-3 text-center">
+                <span className="flex size-12 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-500">
+                  <ImagePlus className="size-6" />
+                </span>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-zinc-900">
+                    ลากรูปมาวาง หรือคลิกเพื่อเลือกไฟล์
+                  </p>
+                  <p className="text-xs text-zinc-400">
+                    หรือกด{" "}
+                    <kbd className="rounded-md bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600">
+                      ⌘V
+                    </kbd>{" "}
+                    /{" "}
+                    <kbd className="rounded-md bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600">
+                      Ctrl+V
+                    </kbd>{" "}
+                    เพื่อวางรูปจากคลิปบอร์ด
+                  </p>
+                </div>
+                {fileHint ? (
+                  <p className="max-w-full truncate text-xs font-medium text-zinc-600">
+                    {fileHint}
+                  </p>
+                ) : null}
+              </div>
+            </div>
           </div>
 
           {previewUrl ? (
@@ -152,7 +285,7 @@ export function FoodUploadForm({ disabled, hero }: FoodUploadFormProps) {
 
           <Button
             type="submit"
-            disabled={disabled || pending}
+            disabled={disabled || pending || !hasFile}
             className={cn("w-full", hero && "h-11 text-base")}
           >
             {pending ? "กำลังวิเคราะห์..." : "วิเคราะห์อาหาร"}

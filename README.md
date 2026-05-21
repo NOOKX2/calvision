@@ -10,12 +10,62 @@
 
 ## เริ่มต้น
 
+### รันทั้งหมดใน Docker (แนะนำ — hot reload)
+
 ```bash
 cp .env.example .env
-docker compose up -d
-bun run db:push
+# ใส่ DIFY_API_KEY ใน .env
+
+bun run docker:dev
+# หรือ: docker compose up --build
+```
+
+เปิด [http://localhost:3000](http://localhost:3000) — แก้โค้ดบนเครื่องแล้ว refresh อัตโนมัติ (volume mount + polling)
+
+หยุด: `bun run docker:dev:down`
+
+| Service | URL / Port |
+|---------|------------|
+| App | http://localhost:3000 |
+| Drizzle Studio (Docker) | https://local.drizzle.studio → `localhost:4983` |
+| PostgreSQL (จาก host) | `localhost:5433` |
+
+> ใน container ใช้ `DATABASE_URL=...@db:5432/...` (compose ตั้งให้แล้ว) ไม่ใช้ `localhost:5433`
+
+### รันบนเครื่อง (PostgreSQL ใน Docker อย่างเดียว)
+
+```bash
+cp .env.example .env
+docker compose up -d db
+bun run db:migrate   # หรือ db:push สำหรับ sync เร็วตอน dev
 bun dev
 ```
+
+### Drizzle Kit (migrations)
+
+```bash
+# สร้างไฟล์ migration หลังแก้ lib/db/schema.ts
+bun run db:generate
+
+# รัน migration ขึ้น PostgreSQL
+bun run db:migrate
+
+# ถ้าเคยใช้ db:push มาก่อน แล้ว migrate error "already exists"
+bun run db:baseline   # หรือ migrate จะ baseline อัตโนมัติให้
+
+# ทางเลือก: sync schema ตรงๆ ไม่ผ่านไฟล์ SQL (dev อย่างเดียว)
+bun run db:push
+
+# UI ดูข้อมูล (บนเครื่อง — ต้องมี db รันและ DATABASE_URL ชี้ localhost:5433)
+bun run db:studio
+
+# UI ดูข้อมูลผ่าน Docker — รันอัตโนมัติพร้อม `docker:dev` ที่พอร์ต 4983
+# เปิด https://local.drizzle.studio
+# Chrome: ไอคอนกุญแจในแถบ URL → เปิด "Local network access"
+# ดู log: bun run docker:studio:logs
+```
+
+ไฟล์ migration อยู่ที่ `drizzle/` (เช่น `drizzle/0000_*.sql`)
 
 ตั้งค่าใน `.env`:
 

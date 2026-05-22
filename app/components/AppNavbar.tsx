@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Settings, UserRound } from "lucide-react";
+import { CalendarDays, Settings, UserRound } from "lucide-react";
 
 import { formatGoalLabel } from "@/lib/nutrition/tdee";
 import type { Profile } from "@/lib/db/schema";
@@ -20,10 +20,19 @@ export function AppNavbar({ profile }: AppNavbarProps) {
           Cal Vision
         </Link>
 
-        <Link
-          href="/settings"
-          className="flex items-center gap-2.5 rounded-full bg-white py-1.5 pr-3 pl-1.5 shadow-[0_2px_12px_rgb(0,0,0,0.06)] transition-shadow hover:shadow-[0_4px_16px_rgb(0,0,0,0.08)]"
-        >
+        <div className="flex items-center gap-2">
+          <Link
+            href="/history"
+            className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-2 text-xs font-medium text-zinc-600 shadow-[0_2px_12px_rgb(0,0,0,0.06)] transition-shadow hover:text-zinc-900 hover:shadow-[0_4px_16px_rgb(0,0,0,0.08)]"
+          >
+            <CalendarDays className="size-3.5" />
+            ประวัติ
+          </Link>
+
+          <Link
+            href="/settings"
+            className="flex items-center gap-2.5 rounded-full bg-white py-1.5 pr-3 pl-1.5 shadow-[0_2px_12px_rgb(0,0,0,0.06)] transition-shadow hover:shadow-[0_4px_16px_rgb(0,0,0,0.08)]"
+          >
           <span className="flex size-8 items-center justify-center rounded-full bg-zinc-100 text-zinc-600">
             <UserRound className="size-4" />
           </span>
@@ -45,7 +54,8 @@ export function AppNavbar({ profile }: AppNavbarProps) {
           </span>
           <Settings className="size-4 shrink-0 text-zinc-400 sm:hidden" />
           <Settings className="hidden size-3.5 shrink-0 text-zinc-400 sm:block" />
-        </Link>
+          </Link>
+        </div>
       </nav>
     </header>
   );

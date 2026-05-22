@@ -79,6 +79,34 @@ export async function deleteMealForProfile(profileId: string, mealId: string) {
   return result[0] ?? null;
 }
 
+export async function updateMealForProfile(
+  profileId: string,
+  mealId: string,
+  data: {
+    foodName: string;
+    proteinG: number;
+    carbsG: number;
+    fatG: number;
+    kcal: number;
+  },
+) {
+  const result = await db
+    .update(mealLogs)
+    .set({
+      foodName: data.foodName,
+      proteinG: data.proteinG,
+      carbsG: data.carbsG,
+      fatG: data.fatG,
+      kcal: data.kcal,
+    })
+    .where(
+      and(eq(mealLogs.id, mealId), eq(mealLogs.profileId, profileId)),
+    )
+    .returning({ id: mealLogs.id });
+
+  return result.length > 0;
+}
+
 export async function getDailyQuotaForProfile(profileId: string, targets: MacroTargets) {
   const todayMeals = await getTodayMeals(profileId);
 

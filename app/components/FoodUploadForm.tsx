@@ -23,13 +23,27 @@ const initialState: MealActionState = { ok: false };
 type FoodUploadFormProps = {
   disabled?: boolean;
   hero?: boolean;
+  /** บันทึกลงวันติดตาม (หน้าประวัติ) แทนวันนี้ตามเวลาจริง */
+  trackingDay?: string;
+  dayLabel?: string;
+  onSuccess?: () => void;
+  submitLabel?: string;
 };
 
 function isImageFile(file: File) {
   return file.type.startsWith("image/");
 }
 
-export function FoodUploadForm({ disabled, hero }: FoodUploadFormProps) {
+export function FoodUploadForm({
+  disabled,
+  hero,
+  trackingDay,
+  dayLabel,
+  onSuccess,
+  submitLabel,
+}: FoodUploadFormProps) {
+  const inputId = trackingDay ? `image-${trackingDay}` : "image";
+  const dayText = dayLabel ? dayLabel : "วันที่เลือก";
   const [state, formAction, pending] = useActionState(
     analyzeAndLogMeal,
     initialState,
@@ -76,8 +90,9 @@ export function FoodUploadForm({ disabled, hero }: FoodUploadFormProps) {
   useEffect(() => {
     if (!pending && state.ok) {
       clearSelection();
+      onSuccess?.();
     }
-  }, [pending, state.ok, clearSelection]);
+  }, [pending, state.ok, clearSelection, onSuccess]);
 
   useEffect(() => {
     return () => {
@@ -169,7 +184,9 @@ export function FoodUploadForm({ disabled, hero }: FoodUploadFormProps) {
               วิเคราะห์อาหาร
             </CardTitle>
             <CardDescription className={cn(hero && "mt-1 text-sm")}>
-              อัปโหลดรูปอาหาร ระบบจะส่งไป Dify แล้วบันทึกสารอาหารอัตโนมัติ
+              {trackingDay
+                ? `อัปโหลดรูปอาหาร บันทึกลง${dayText} · ระบบจะส่งไป Dify แล้วประเมินสารอาหารอัตโนมัติ`
+                : "อัปโหลดรูปอาหาร ระบบจะส่งไป Dify แล้วบันทึกสารอาหารอัตโนมัติ"}
             </CardDescription>
           </div>
         </div>
@@ -179,9 +196,12 @@ export function FoodUploadForm({ disabled, hero }: FoodUploadFormProps) {
           action={formAction}
           className={cn("space-y-4", hasPreview && "space-y-3")}
         >
+          {trackingDay ? (
+            <input type="hidden" name="trackingDay" value={trackingDay} />
+          ) : null}
           <div className={cn("space-y-2", hasPreview && "space-y-2.5")}>
             <Label
-              htmlFor="image"
+              htmlFor={inputId}
               className={cn(hero && "text-sm text-zinc-600")}
             >
               {hero ? "รูปอาหาร" : "รูปภาพอาหาร"}
@@ -223,7 +243,7 @@ export function FoodUploadForm({ disabled, hero }: FoodUploadFormProps) {
             >
               <input
                 ref={inputRef}
-                id="image"
+                id={inputId}
                 name="image"
                 type="file"
                 accept="image/*"
@@ -322,7 +342,10 @@ export function FoodUploadForm({ disabled, hero }: FoodUploadFormProps) {
             disabled={disabled || pending || !hasFile}
             className={cn("w-full", hero && "h-11 text-base")}
           >
-            {pending ? "กำลังวิเคราะห์..." : "วิเคราะห์อาหาร"}
+            {pending
+              ? "กำลังวิเคราะห์..."
+              : (submitLabel ??
+                (trackingDay ? "วิเคราะห์และบันทึก" : "วิเคราะห์อาหาร"))}
           </Button>
         </form>
       </CardContent>

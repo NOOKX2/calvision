@@ -1,8 +1,15 @@
+"use client";
+
+import { useState } from "react";
+import { Pencil } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import type { MealLog } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
 
 import { MealDeleteButton } from "./MealDeleteButton";
+import { MealEditForm } from "./MealEditForm";
 
 type MealHistoryItemProps = {
   meal: MealLog;
@@ -10,6 +17,7 @@ type MealHistoryItemProps = {
 };
 
 export function MealHistoryItem({ meal, showSeparator }: MealHistoryItemProps) {
+  const [editing, setEditing] = useState(false);
   const hasImage = Boolean(meal.imagePath);
 
   return (
@@ -47,8 +55,19 @@ export function MealHistoryItem({ meal, showSeparator }: MealHistoryItemProps) {
             </div>
             <div className="flex shrink-0 items-center gap-0.5">
               <p className="text-sm font-semibold tabular-nums text-zinc-900">
-                {meal.kcal}
+                {meal.kcal.toLocaleString()}{" "}
+                <span className="text-xs font-medium text-zinc-500">kcal</span>
               </p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900"
+                aria-label={`แก้ไข ${meal.foodName ?? "มื้ออาหาร"}`}
+                onClick={() => setEditing((v) => !v)}
+              >
+                <Pencil className="size-4" />
+              </Button>
               <MealDeleteButton
                 mealId={meal.id}
                 foodName={meal.foodName ?? "มื้ออาหาร"}
@@ -56,30 +75,36 @@ export function MealHistoryItem({ meal, showSeparator }: MealHistoryItemProps) {
             </div>
           </div>
 
-          <dl
-            className={cn(
-              "mt-2 grid grid-cols-3 gap-2 text-[10px] text-zinc-500",
-            )}
-          >
-            <div>
-              <dt>โปรตีน</dt>
-              <dd className="mt-0.5 text-xs font-semibold tabular-nums text-zinc-800">
-                {meal.proteinG}g
-              </dd>
-            </div>
-            <div>
-              <dt>คาร์บ</dt>
-              <dd className="mt-0.5 text-xs font-semibold tabular-nums text-zinc-800">
-                {meal.carbsG}g
-              </dd>
-            </div>
-            <div>
-              <dt>ไขมัน</dt>
-              <dd className="mt-0.5 text-xs font-semibold tabular-nums text-zinc-800">
-                {meal.fatG}g
-              </dd>
-            </div>
-          </dl>
+          {!editing ? (
+            <dl
+              className={cn(
+                "mt-2 grid grid-cols-3 gap-2 text-[10px] text-zinc-500",
+              )}
+            >
+              <div>
+                <dt>โปรตีน</dt>
+                <dd className="mt-0.5 text-xs font-semibold tabular-nums text-zinc-800">
+                  {meal.proteinG}g
+                </dd>
+              </div>
+              <div>
+                <dt>คาร์บ</dt>
+                <dd className="mt-0.5 text-xs font-semibold tabular-nums text-zinc-800">
+                  {meal.carbsG}g
+                </dd>
+              </div>
+              <div>
+                <dt>ไขมัน</dt>
+                <dd className="mt-0.5 text-xs font-semibold tabular-nums text-zinc-800">
+                  {meal.fatG}g
+                </dd>
+              </div>
+            </dl>
+          ) : null}
+
+          {editing ? (
+            <MealEditForm meal={meal} onDone={() => setEditing(false)} />
+          ) : null}
         </div>
       </div>
     </article>

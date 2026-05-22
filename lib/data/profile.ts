@@ -2,13 +2,9 @@ import { and, eq, gte, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { mealLogs, profiles } from "@/lib/db/schema";
+import { getTrackingDayStart } from "@/lib/nutrition/day-boundary";
 import { buildDailyQuota } from "@/lib/nutrition/quota";
 import type { DailyQuota, MacroTargets } from "@/lib/nutrition/types";
-
-function startOfToday() {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-}
 
 export async function getProfileBySession(sessionId: string) {
   const [profile] = await db
@@ -43,10 +39,44 @@ export async function getTodayMeals(profileId: string) {
     .where(
       and(
         eq(mealLogs.profileId, profileId),
-        gte(mealLogs.loggedAt, startOfToday()),
+        gte(mealLogs.loggedAt, getTrackingDayStart()),
       ),
     )
     .orderBy(sql`${mealLogs.loggedAt} desc`);
+}
+
+export async function deleteTodayMeals(profileId: string) {
+  const todayRows = await db
+    .select({ imagePath: mealLogs.imagePath })
+    .from(mealLogs)
+    .where(
+      and(
+        eq(mealLogs.profileId, profileId),
+        gte(mealLogs.loggedAt, getTrackingDayStart()),
+      ),
+    );
+
+  await db
+    .delete(mealLogs)
+    .where(
+      and(
+        eq(mealLogs.profileId, profileId),
+        gte(mealLogs.loggedAt, getTrackingDayStart()),
+      ),
+    );
+
+  return todayRows.map((row) => row.imagePath).filter(Boolean) as string[];
+}
+
+export async function deleteMealForProfile(profileId: string, mealId: string) {
+  const result = await db
+    .delete(mealLogs)
+    .where(
+      and(eq(mealLogs.id, mealId), eq(mealLogs.profileId, profileId)),
+    )
+    .returning({ id: mealLogs.id, imagePath: mealLogs.imagePath });
+
+  return result[0] ?? null;
 }
 
 export async function getDailyQuotaForProfile(profileId: string, targets: MacroTargets) {

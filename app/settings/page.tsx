@@ -1,6 +1,6 @@
-import { TdeeProfileForm } from "@/app/settings/components/tdee-profile-form";
-import { ProfileSummary } from "@/app/settings/components/profile-summary";
-import { SettingsHeader } from "@/app/settings/components/settings-header";
+import { TdeeProfileForm } from "@/app/settings/components/TdeeProfileForm";
+import { ProfileSummary } from "@/app/settings/components/ProfileSummary";
+import { SettingsHeader } from "@/app/settings/components/SettingsHeader";
 import { getProfileBySession } from "@/lib/data/profile";
 import { getSessionId } from "@/lib/session";
 

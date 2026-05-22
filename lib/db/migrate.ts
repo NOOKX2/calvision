@@ -26,6 +26,13 @@ function isRelationExistsError(error: unknown) {
   return text.includes("42P07") || text.includes("already exists");
 }
 
+/** Idempotent patches when journal is ahead of the actual DB (e.g. new container, old volume). */
+async function ensureSchemaPatches(client: postgres.Sql) {
+  await client.unsafe(
+    'ALTER TABLE "meal_logs" ADD COLUMN IF NOT EXISTS "image_path" text',
+  );
+}
+
 async function runMigrations() {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
@@ -40,6 +47,7 @@ async function runMigrations() {
 
   try {
     await migrate(db, { migrationsFolder });
+    await ensureSchemaPatches(client);
     console.log("Migrations complete.");
   } catch (error) {
     if (isRelationExistsError(error) && (await tablesExist(client))) {
@@ -48,6 +56,7 @@ async function runMigrations() {
       );
       await baselineMigrations(client, migrationsFolder);
       await migrate(db, { migrationsFolder });
+      await ensureSchemaPatches(client);
       console.log("Migrations complete (baselined existing schema).");
     } else {
       throw error;

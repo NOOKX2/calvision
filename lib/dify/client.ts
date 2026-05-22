@@ -42,6 +42,29 @@ const THAI_KEY_MAP: Record<string, string> = {
   พลังงาน: "kcal",
 };
 
+const WORKFLOW_TIMEOUT_MS = 120_000;
+
+function formatDifyError(detail: string, status?: number) {
+  const trimmed = detail.trim();
+
+  if (/<!DOCTYPE html/i.test(trimmed) || /<html/i.test(trimmed)) {
+    if (/504|gateway time-out/i.test(trimmed)) {
+      return "Dify ใช้เวลานานเกินไป (504 Gateway Timeout) — ลองใหม่อีกครั้ง หรือใช้รูปที่เล็กลง / เปลี่ยนโมเดลให้เร็วขึ้นใน workflow";
+    }
+    if (/502|503/i.test(trimmed)) {
+      return "เซิร์ฟเวอร์ Dify ไม่พร้อมชั่วคราว — ลองใหม่อีกครั้งในอีกสักครู่";
+    }
+    return "Dify ตอบกลับผิดปกติ — ลองใหม่อีกครั้ง";
+  }
+
+  if (status === 504) {
+    return "Dify ใช้เวลานานเกินไป (504) — ลองใหม่อีกครั้ง";
+  }
+
+  const oneLine = trimmed.replace(/\s+/g, " ").slice(0, 280);
+  return oneLine || "Dify วิเคราะห์ไม่สำเร็จ";
+}
+
 function getDifyConfig() {
   const apiKey = process.env.DIFY_API_KEY;
   const baseUrl = (process.env.DIFY_API_URL ?? "https://api.dify.ai").replace(
@@ -239,7 +262,9 @@ async function uploadImage(file: File, user: string) {
 
   if (!response.ok) {
     const detail = await response.text();
-    throw new Error(`Dify upload failed: ${detail}`);
+    throw new Error(
+      `อัปโหลดรูปไป Dify ไม่สำเร็จ: ${formatDifyError(detail, response.status)}`,
+    );
   }
 
   const json = (await response.json()) as { id: string };
@@ -290,18 +315,34 @@ export async function analyzeFoodImage(
           user,
         };
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), WORKFLOW_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(
+        "Dify ใช้เวลานานเกิน 2 นาที — ลองใหม่ หรือลดขนาดรูป / ใช้โมเดลที่เร็วกว่าใน workflow",
+      );
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     const detail = await response.text();
-    throw new Error(`Dify analysis failed: ${detail}`);
+    throw new Error(formatDifyError(detail, response.status));
   }
 
   const json = (await response.json()) as Record<string, unknown>;

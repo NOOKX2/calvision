@@ -40,6 +40,18 @@ export function FoodUploadForm({ disabled, hero }: FoodUploadFormProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [fileHint, setFileHint] = useState<string | null>(null);
 
+  const clearSelection = useCallback(() => {
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
+    setHasFile(false);
+    setFileHint(null);
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+  }, []);
+
   const applyFile = useCallback((file: File) => {
     if (!isImageFile(file)) {
       setFileHint("กรุณาใช้ไฟล์รูปภาพเท่านั้น");
@@ -59,6 +71,13 @@ export function FoodUploadForm({ disabled, hero }: FoodUploadFormProps) {
       return URL.createObjectURL(file);
     });
   }, []);
+
+  // หลัง submit สำเร็จ (pending กลับเป็น false + state.ok) → ล้าง preview
+  useEffect(() => {
+    if (!pending && state.ok) {
+      clearSelection();
+    }
+  }, [pending, state.ok, clearSelection]);
 
   useEffect(() => {
     return () => {
@@ -91,12 +110,7 @@ export function FoodUploadForm({ disabled, hero }: FoodUploadFormProps) {
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) {
-      setHasFile(false);
-      setFileHint(null);
-      setPreviewUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return null;
-      });
+      clearSelection();
       return;
     }
 
@@ -125,9 +139,11 @@ export function FoodUploadForm({ disabled, hero }: FoodUploadFormProps) {
     if (file) applyFile(file);
   }
 
+  const hasPreview = Boolean(previewUrl);
+
   const dropZoneClassName = cn(
-    "relative rounded-2xl border-2 border-dashed transition-colors",
-    hero ? "p-6 sm:p-8" : "p-5",
+    "relative rounded-2xl border-2 border-dashed transition-all",
+    hasPreview ? "p-3" : hero ? "p-6 sm:p-8" : "p-5",
     isDragging
       ? "border-zinc-900 bg-white"
       : "border-zinc-200 bg-zinc-50/50 hover:border-zinc-300 hover:bg-white/80",
@@ -159,8 +175,11 @@ export function FoodUploadForm({ disabled, hero }: FoodUploadFormProps) {
         </div>
       </CardHeader>
       <CardContent>
-        <form action={formAction} className="space-y-5">
-          <div className="space-y-2">
+        <form
+          action={formAction}
+          className={cn("space-y-4", hasPreview && "space-y-3")}
+        >
+          <div className={cn("space-y-2", hasPreview && "space-y-2.5")}>
             <Label
               htmlFor="image"
               className={cn(hero && "text-sm text-zinc-600")}
@@ -168,10 +187,26 @@ export function FoodUploadForm({ disabled, hero }: FoodUploadFormProps) {
               {hero ? "รูปอาหาร" : "รูปภาพอาหาร"}
             </Label>
 
+            {previewUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={previewUrl}
+                alt="ตัวอย่างอาหาร"
+                className={cn(
+                  "w-full rounded-2xl object-cover ring-1 ring-zinc-200/80",
+                  hero ? "aspect-[4/3] max-h-72" : "aspect-video max-h-56",
+                )}
+              />
+            ) : null}
+
             <div
               role="button"
               tabIndex={disabled || pending ? -1 : 0}
-              aria-label="วางรูปอาหาร ลากไฟล์ หรือวางจากคลิปบอร์ด"
+              aria-label={
+                hasPreview
+                  ? "เปลี่ยนรูปอาหาร"
+                  : "วางรูปอาหาร ลากไฟล์ หรือวางจากคลิปบอร์ด"
+              }
               className={dropZoneClassName}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -198,46 +233,45 @@ export function FoodUploadForm({ disabled, hero }: FoodUploadFormProps) {
                 className="sr-only"
               />
 
-              <div className="flex flex-col items-center gap-3 text-center">
-                <span className="flex size-12 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-500">
-                  <ImagePlus className="size-6" />
-                </span>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-zinc-900">
-                    ลากรูปมาวาง หรือคลิกเพื่อเลือกไฟล์
-                  </p>
-                  <p className="text-xs text-zinc-400">
-                    หรือกด{" "}
-                    <kbd className="rounded-md bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600">
-                      ⌘V
-                    </kbd>{" "}
-                    /{" "}
-                    <kbd className="rounded-md bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600">
-                      Ctrl+V
-                    </kbd>{" "}
-                    เพื่อวางรูปจากคลิปบอร์ด
-                  </p>
+              {hasPreview ? (
+                <div className="flex items-center gap-2.5 text-left">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-500">
+                    <ImagePlus className="size-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-medium text-zinc-900">
+                      {fileHint ?? "รูปที่เลือก"}
+                    </p>
+                    <p className="text-[10px] text-zinc-400">
+                      คลิกหรือลากเพื่อเปลี่ยนรูป · ⌘V / Ctrl+V
+                    </p>
+                  </div>
                 </div>
-                {fileHint ? (
-                  <p className="max-w-full truncate text-xs font-medium text-zinc-600">
-                    {fileHint}
-                  </p>
-                ) : null}
-              </div>
+              ) : (
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <span className="flex size-12 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-500">
+                    <ImagePlus className="size-6" />
+                  </span>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-zinc-900">
+                      ลากรูปมาวาง หรือคลิกเพื่อเลือกไฟล์
+                    </p>
+                    <p className="text-xs text-zinc-400">
+                      หรือกด{" "}
+                      <kbd className="rounded-md bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600">
+                        ⌘V
+                      </kbd>{" "}
+                      /{" "}
+                      <kbd className="rounded-md bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600">
+                        Ctrl+V
+                      </kbd>{" "}
+                      เพื่อวางรูปจากคลิปบอร์ด
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-
-          {previewUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={previewUrl}
-              alt="ตัวอย่างอาหาร"
-              className={cn(
-                "w-full rounded-2xl object-cover ring-1 ring-zinc-200/80",
-                hero ? "aspect-[4/3] max-h-80" : "aspect-video",
-              )}
-            />
-          ) : null}
 
           {state.nutrition ? (
             <div className="rounded-2xl bg-zinc-100/70 p-4 text-sm">

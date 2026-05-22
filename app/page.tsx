@@ -1,8 +1,8 @@
-import { FoodUploadForm } from "@/app/components/food-upload-form";
-import { MealHistory } from "@/app/components/meal-history";
-import { QuotaCard } from "@/app/components/quota-card";
-import { SetupBanner } from "@/app/components/setup-banner";
-import { SiteHeader } from "@/app/components/site-header";
+import { FoodUploadForm } from "@/app/components/FoodUploadForm";
+import { MealHistory } from "@/app/components/MealHistory";
+import { QuotaCard } from "@/app/components/QuotaCard";
+import { SetupBanner } from "@/app/components/SetupBanner";
+import { SiteHeader } from "@/app/components/SiteHeader";
 import {
   getDashboardData,
   getProfileBySession,
@@ -37,6 +37,7 @@ export default async function HomePage() {
                 goal={dashboard.profile.goal as Goal}
                 tdee={dashboard.profile.tdee}
                 compact
+                canReset={dashboard.meals.length > 0}
               />
             ) : (
               <section className="rounded-3xl bg-white p-6 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)]">

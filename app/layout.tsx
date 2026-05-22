@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Prompt } from "next/font/google";
 
-import { AppNavbar } from "@/app/components/app-navbar";
+import { AppNavbar } from "@/app/components/AppNavbar";
 import { getProfileBySession } from "@/lib/data/profile";
 import { getSessionId } from "@/lib/session";
 

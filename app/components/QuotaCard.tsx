@@ -10,16 +10,24 @@ import { formatGoalLabel } from "@/lib/nutrition/tdee";
 import type { DailyQuota, Goal } from "@/lib/nutrition/types";
 import { cn } from "@/lib/utils";
 
-import { MacroQuotaRow } from "./macro-quota-row";
+import { MacroQuotaRow } from "./MacroQuotaRow";
+import { ResetCaloriesButton } from "./ResetCaloriesButton";
 
 type QuotaCardProps = {
   quota: DailyQuota;
   goal: Goal;
   tdee: number;
   compact?: boolean;
+  canReset?: boolean;
 };
 
-export function QuotaCard({ quota, goal, tdee, compact }: QuotaCardProps) {
+export function QuotaCard({
+  quota,
+  goal,
+  tdee,
+  compact,
+  canReset,
+}: QuotaCardProps) {
   const { consumed, targets, remaining } = quota;
 
   return (
@@ -40,7 +48,7 @@ export function QuotaCard({ quota, goal, tdee, compact }: QuotaCardProps) {
           </CardDescription>
         ) : (
           <CardDescription>
-            {consumed.kcal}/{targets.targetKcal} kcal
+            {consumed.kcal}/{targets.targetKcal} kcal · รีเซ็ต 06:00
           </CardDescription>
         )}
       </CardHeader>
@@ -75,6 +83,9 @@ export function QuotaCard({ quota, goal, tdee, compact }: QuotaCardProps) {
           target={targets.targetFatG}
           remaining={remaining.fatG}
         />
+        {canReset ? (
+          <ResetCaloriesButton className="pt-1" />
+        ) : null}
       </CardContent>
     </Card>
   );

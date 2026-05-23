@@ -42,8 +42,8 @@ export function MealHistoryItem({ meal, showSeparator }: MealHistoryItemProps) {
 
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-zinc-900">
+            <div className="min-w-0 flex-1 pr-1">
+              <p className="text-sm font-semibold leading-snug break-words text-zinc-900">
                 {meal.foodName ?? "มื้ออาหาร"}
               </p>
               <p className="mt-0.5 text-[11px] text-zinc-400">
@@ -53,32 +53,34 @@ export function MealHistoryItem({ meal, showSeparator }: MealHistoryItemProps) {
                 })}
               </p>
             </div>
-            <div className="flex shrink-0 items-center gap-0.5">
+            <div className="flex shrink-0 flex-col items-end gap-1">
               <p className="text-sm font-semibold tabular-nums text-zinc-900">
                 {meal.kcal.toLocaleString()}{" "}
                 <span className="text-xs font-medium text-zinc-500">kcal</span>
               </p>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900"
-                aria-label={`แก้ไข ${meal.foodName ?? "มื้ออาหาร"}`}
-                onClick={() => setEditing((v) => !v)}
-              >
-                <Pencil className="size-4" />
-              </Button>
-              <MealDeleteButton
-                mealId={meal.id}
-                foodName={meal.foodName ?? "มื้ออาหาร"}
-              />
+              <div className="flex gap-0.5">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900"
+                  aria-label={`แก้ไข ${meal.foodName ?? "มื้ออาหาร"}`}
+                  onClick={() => setEditing((v) => !v)}
+                >
+                  <Pencil className="size-4" />
+                </Button>
+                <MealDeleteButton
+                  mealId={meal.id}
+                  foodName={meal.foodName ?? "มื้ออาหาร"}
+                />
+              </div>
             </div>
           </div>
 
           {!editing ? (
             <dl
               className={cn(
-                "mt-2 grid grid-cols-3 gap-2 text-[10px] text-zinc-500",
+                "mt-2.5 grid grid-cols-3 gap-3 text-[10px] text-zinc-500",
               )}
             >
               <div>

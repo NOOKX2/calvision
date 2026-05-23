@@ -23,6 +23,12 @@ const initialState: MealActionState = { ok: false };
 type FoodUploadFormProps = {
   disabled?: boolean;
   hero?: boolean;
+  /** หน้าหลัก: การ์ด hero กึ่งกลาง เน้นอัปโหลด */
+  centered?: boolean;
+  /** หัวข้อ hero อยู่นอกการ์ด */
+  hideCardHeading?: boolean;
+  /** หน้าหลัก 3 คอลัมน์: หัวข้อในการ์ด ขอบบนเรียงกับโควต้า/มื้อ */
+  homeColumn?: boolean;
   /** บันทึกลงวันติดตาม (หน้าประวัติ) แทนวันนี้ตามเวลาจริง */
   trackingDay?: string;
   dayLabel?: string;
@@ -37,11 +43,16 @@ function isImageFile(file: File) {
 export function FoodUploadForm({
   disabled,
   hero,
+  centered,
+  hideCardHeading,
+  homeColumn,
   trackingDay,
   dayLabel,
   onSuccess,
   submitLabel,
 }: FoodUploadFormProps) {
+  const isCenteredHero = Boolean(hero && centered && !trackingDay);
+  const isHomeColumn = Boolean(isCenteredHero && homeColumn);
   const inputId = trackingDay ? `image-${trackingDay}` : "image";
   const dayText = dayLabel ? dayLabel : "วันที่เลือก";
   const [state, formAction, pending] = useActionState(
@@ -158,7 +169,13 @@ export function FoodUploadForm({
 
   const dropZoneClassName = cn(
     "relative rounded-2xl border-2 border-dashed transition-all",
-    hasPreview ? "p-3" : hero ? "p-6 sm:p-8" : "p-5",
+    hasPreview
+      ? "p-3"
+      : isCenteredHero
+        ? "flex min-h-[220px] flex-col items-center justify-center p-6 sm:min-h-[240px] sm:p-8"
+        : hero
+          ? "p-6 sm:p-8"
+          : "p-5",
     isDragging
       ? "border-zinc-900 bg-white"
       : "border-zinc-200 bg-zinc-50/50 hover:border-zinc-300 hover:bg-white/80",
@@ -168,30 +185,91 @@ export function FoodUploadForm({
   return (
     <Card
       className={cn(
-        hero && "ring-1 ring-zinc-900/5 lg:py-8",
+        hero && "gap-0 py-0",
+        isCenteredHero
+          ? "shadow-[0_12px_40px_rgb(0,0,0,0.06)] ring-1 ring-zinc-900/5"
+          : hero && "ring-1 ring-zinc-900/5",
         disabled && "opacity-60",
       )}
     >
-      <CardHeader className={cn(hero && "gap-2 pb-2")}>
-        <div className="flex items-start gap-3">
-          {hero ? (
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-zinc-900 text-white">
-              <Camera className="size-5" />
+      {isHomeColumn ? (
+        <CardHeader className="gap-2 px-5 pb-2 pt-5 text-center sm:px-6">
+          <div className="flex flex-col items-center gap-2">
+            <span className="flex size-10 items-center justify-center rounded-2xl bg-zinc-900 text-white">
+              <Camera className="size-4" />
             </span>
-          ) : null}
-          <div>
-            <CardTitle className={cn(hero && "text-xl sm:text-2xl")}>
-              วิเคราะห์อาหาร
-            </CardTitle>
-            <CardDescription className={cn(hero && "mt-1 text-sm")}>
-              {trackingDay
-                ? `อัปโหลดรูปอาหาร บันทึกลง${dayText} · ระบบจะส่งไป Dify แล้วประเมินสารอาหารอัตโนมัติ`
-                : "อัปโหลดรูปอาหาร ระบบจะส่งไป Dify แล้วบันทึกสารอาหารอัตโนมัติ"}
-            </CardDescription>
+            <div className="space-y-1">
+              <CardTitle className="text-base font-bold leading-snug">
+                ถ่ายรูป วิเคราะห์ทันที
+              </CardTitle>
+              <CardDescription className="text-[11px] leading-relaxed">
+                อัปโหลดรูปอาหาร ระบบจะประเมินโปรตีน คาร์บ ไขมัน และแคลอรี่ให้อัตโนมัติ
+              </CardDescription>
+            </div>
           </div>
+        </CardHeader>
+      ) : hideCardHeading && isCenteredHero ? (
+        <div className="flex justify-center px-6 pt-6 sm:px-8 sm:pt-7">
+          <span className="flex size-12 items-center justify-center rounded-2xl bg-zinc-900 text-white sm:size-14 sm:rounded-3xl">
+            <Camera className="size-5 sm:size-6" />
+          </span>
         </div>
-      </CardHeader>
-      <CardContent>
+      ) : (
+        <CardHeader
+          className={cn(
+            hero && "gap-2 px-5 pb-2 pt-5 sm:px-6",
+            isCenteredHero && "px-6 pb-3 pt-7 text-center sm:px-8 sm:pt-8",
+          )}
+        >
+          <div
+            className={cn(
+              "flex items-start gap-3",
+              isCenteredHero && "flex-col items-center gap-4",
+            )}
+          >
+            {hero ? (
+              <span
+                className={cn(
+                  "flex size-11 shrink-0 items-center justify-center rounded-2xl bg-zinc-900 text-white",
+                  isCenteredHero && "size-14 rounded-3xl",
+                )}
+              >
+                <Camera className={cn("size-5", isCenteredHero && "size-6")} />
+              </span>
+            ) : null}
+            <div className={cn(isCenteredHero && "max-w-md")}>
+              <CardTitle
+                className={cn(
+                  hero && "text-xl sm:text-2xl",
+                  isCenteredHero && "text-2xl sm:text-3xl",
+                )}
+              >
+                วิเคราะห์อาหาร
+              </CardTitle>
+              <CardDescription
+                className={cn(
+                  hero && "mt-1 text-sm",
+                  isCenteredHero && "mt-2 text-sm leading-relaxed",
+                )}
+              >
+                {trackingDay
+                  ? `อัปโหลดรูปอาหาร บันทึกลง${dayText} · ระบบจะส่งไป Dify แล้วประเมินสารอาหารอัตโนมัติ`
+                  : "อัปโหลดรูปอาหาร ระบบจะส่งไป Dify แล้วบันทึกสารอาหารอัตโนมัติ"}
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+      )}
+      <CardContent
+        className={cn(
+          hero && "px-5 pb-5 sm:px-6 sm:pb-6",
+          isHomeColumn && "px-5 pb-5 pt-3 sm:px-6",
+          isCenteredHero &&
+            !isHomeColumn &&
+            "px-6 pb-7 sm:px-8 sm:pb-8",
+          hideCardHeading && isCenteredHero && !isHomeColumn && "pt-4",
+        )}
+      >
         <form
           action={formAction}
           className={cn("space-y-4", hasPreview && "space-y-3")}
@@ -340,7 +418,11 @@ export function FoodUploadForm({
           <Button
             type="submit"
             disabled={disabled || pending || !hasFile}
-            className={cn("w-full", hero && "h-11 text-base")}
+            className={cn(
+              "w-full",
+              hero && "h-11 text-base",
+              isCenteredHero && "h-12 text-base sm:text-lg",
+            )}
           >
             {pending
               ? "กำลังวิเคราะห์..."

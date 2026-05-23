@@ -98,8 +98,8 @@ export function QuotaCard({
   }
 
   return (
-    <Card className={cn(compact && "py-5")}>
-      <CardHeader className={cn("gap-2", compact && "px-5 pb-0")}>
+    <Card className={cn(compact && "gap-0 py-0")}>
+      <CardHeader className={cn("gap-2", compact && "px-5 pb-0 pt-5")}>
         <div className="flex flex-wrap items-center gap-2">
           <CardTitle className={cn(compact && "text-base")}>{title}</CardTitle>
           <Badge variant="secondary" className="rounded-full px-2.5 text-[10px]">

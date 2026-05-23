@@ -2,7 +2,6 @@ import { FoodUploadForm } from "@/app/components/FoodUploadForm";
 import { MealHistory } from "@/app/components/MealHistory";
 import { QuotaCard } from "@/app/components/QuotaCard";
 import { SetupBanner } from "@/app/components/SetupBanner";
-import { SiteHeader } from "@/app/components/SiteHeader";
 import {
   getDashboardData,
   getProfileBySession,
@@ -22,36 +21,60 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-full bg-[#f5f5f7]">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 sm:gap-7 sm:px-6 sm:py-10">
-        <SiteHeader />
-
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-10">
         {!hasProfile ? <SetupBanner /> : null}
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start">
-          <FoodUploadForm disabled={!hasProfile} hero />
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-lg font-bold tracking-tight text-zinc-900">
+              ภาพรวมวันนี้
+            </h2>
+            <p className="mt-1 text-xs leading-relaxed text-zinc-400">
+              โควต้า · วิเคราะห์อาหาร · มื้อที่บันทึกแล้ว · นับตั้งแต่ 06:00
+            </p>
+          </div>
 
-          <aside className="flex flex-col gap-6">
-            {dashboard ? (
-              <QuotaCard
-                quota={dashboard.quota}
-                goal={dashboard.profile.goal as Goal}
-                tdee={dashboard.profile.tdee}
-                compact
-                canReset={dashboard.meals.length > 0}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
+            <div className="order-2 lg:order-1 lg:col-span-3 lg:self-start">
+              {dashboard ? (
+                <QuotaCard
+                  quota={dashboard.quota}
+                  goal={dashboard.profile.goal as Goal}
+                  tdee={dashboard.profile.tdee}
+                  compact
+                  canReset={dashboard.meals.length > 0}
+                />
+              ) : (
+                <section className="rounded-3xl bg-white px-5 py-5 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                  <p className="text-xs leading-relaxed text-zinc-400">
+                    ตั้งค่าโปรไฟล์เพื่อดูโควต้ารายวัน
+                  </p>
+                </section>
+              )}
+            </div>
+
+            <div className="order-1 min-w-0 lg:order-2 lg:col-span-5 lg:self-start">
+              <FoodUploadForm
+                disabled={!hasProfile}
+                hero
+                centered
+                homeColumn
               />
-            ) : (
-              <section className="rounded-3xl bg-white p-6 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-                <p className="text-xs leading-relaxed text-zinc-400">
-                  ตั้งค่าโปรไฟล์เพื่อดูโควต้าโปรตีน คาร์บ ไขมัน และแคลอรี่รายวัน
-                </p>
-              </section>
-            )}
+            </div>
 
-            {hasProfile ? (
-              <MealHistory meals={dashboard?.meals ?? []} compact />
-            ) : null}
-          </aside>
-        </div>
+            <div className="order-3 lg:col-span-4 lg:self-start">
+              {dashboard ? (
+                <MealHistory meals={dashboard.meals} compact />
+              ) : (
+                <section className="rounded-3xl bg-white px-5 py-5 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                  <p className="text-xs leading-relaxed text-zinc-400">
+                    มื้อวันนี้จะแสดงหลังตั้งค่าโปรไฟล์
+                  </p>
+                </section>
+              )}
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   );

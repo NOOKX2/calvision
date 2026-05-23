@@ -120,7 +120,7 @@ export function QuotaCard({
         )}
       </CardHeader>
       <CardContent
-        className={cn("space-y-4", compact && "space-y-3.5 px-5 pt-4")}
+        className={cn("space-y-4", compact && "space-y-3.5 px-5 pb-5 pt-4")}
       >
         <QuotaRows quota={quota} dense={dense} />
         {canReset ? <ResetCaloriesButton className="pt-1" /> : null}

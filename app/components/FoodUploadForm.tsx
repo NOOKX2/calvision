@@ -1,7 +1,9 @@
 "use client";
 
 import { useActionState, useCallback, useEffect, useRef, useState } from "react";
-import { Camera, ImagePlus } from "lucide-react";
+import { Camera, ImageIcon, ImagePlus } from "lucide-react";
+
+import { FoodCameraCapture } from "@/app/components/FoodCameraCapture";
 
 import {
   analyzeAndLogMeal,
@@ -60,15 +62,18 @@ export function FoodUploadForm({
     initialState,
   );
   const inputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [hasFile, setHasFile] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [fileHint, setFileHint] = useState<string | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
 
   const clearSelection = useCallback(() => {
-    if (inputRef.current) {
-      inputRef.current.value = "";
-    }
+    if (inputRef.current) inputRef.current.value = "";
+    if (galleryInputRef.current) galleryInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
     setHasFile(false);
     setFileHint(null);
     setPreviewUrl((prev) => {
@@ -141,6 +146,22 @@ export function FoodUploadForm({
     }
 
     applyFile(file);
+  }
+
+  function handleTakePhoto() {
+    if (disabled || pending) return;
+
+    if (typeof navigator !== "undefined" && navigator.mediaDevices) {
+      setCameraOpen(true);
+      return;
+    }
+
+    cameraInputRef.current?.click();
+  }
+
+  function handlePickGallery() {
+    if (disabled || pending) return;
+    galleryInputRef.current?.click();
   }
 
   function handleDragOver(event: React.DragEvent) {
@@ -285,6 +306,50 @@ export function FoodUploadForm({
               {hero ? "รูปอาหาร" : "รูปภาพอาหาร"}
             </Label>
 
+            <input
+              ref={inputRef}
+              id={inputId}
+              name="image"
+              type="file"
+              accept="image/*"
+              disabled={disabled || pending}
+              required={!hasFile}
+              className="sr-only"
+              tabIndex={-1}
+              aria-hidden
+            />
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              disabled={disabled || pending}
+              onChange={handleFileChange}
+              className="sr-only"
+              tabIndex={-1}
+              aria-hidden
+            />
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              disabled={disabled || pending}
+              onChange={handleFileChange}
+              className="sr-only"
+              tabIndex={-1}
+              aria-hidden
+            />
+
+            {cameraOpen ? (
+              <FoodCameraCapture
+                open={cameraOpen}
+                disabled={disabled || pending}
+                onClose={() => setCameraOpen(false)}
+                onCapture={applyFile}
+                onUnavailable={() => cameraInputRef.current?.click()}
+              />
+            ) : null}
+
             {previewUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -292,11 +357,12 @@ export function FoodUploadForm({
                 alt="ตัวอย่างอาหาร"
                 className={cn(
                   "w-full rounded-2xl object-cover ring-1 ring-zinc-200/80",
-                  hero ? "aspect-[4/3] max-h-72" : "aspect-video max-h-56",
+                  hero ? "aspect-4/3 max-h-72" : "aspect-video max-h-56",
                 )}
               />
             ) : null}
 
+            {!cameraOpen ? (
             <div
               role="button"
               tabIndex={disabled || pending ? -1 : 0}
@@ -310,27 +376,15 @@ export function FoodUploadForm({
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => {
-                if (!disabled && !pending) inputRef.current?.click();
+                if (!disabled && !pending) handlePickGallery();
               }}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();
-                  inputRef.current?.click();
+                  handlePickGallery();
                 }
               }}
             >
-              <input
-                ref={inputRef}
-                id={inputId}
-                name="image"
-                type="file"
-                accept="image/*"
-                disabled={disabled || pending}
-                onChange={handleFileChange}
-                required={!hasFile}
-                className="sr-only"
-              />
-
               {hasPreview ? (
                 <div className="flex items-center gap-2.5 text-left">
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-500">
@@ -352,10 +406,10 @@ export function FoodUploadForm({
                   </span>
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-zinc-900">
-                      ลากรูปมาวาง หรือคลิกเพื่อเลือกไฟล์
+                      ลากรูปมาวาง หรือเลือกจากอัลบั้ม
                     </p>
                     <p className="text-xs text-zinc-400">
-                      หรือกด{" "}
+                      กดถ่ายรูปด้านล่าง · หรือ{" "}
                       <kbd className="rounded-md bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600">
                         ⌘V
                       </kbd>{" "}
@@ -363,12 +417,44 @@ export function FoodUploadForm({
                       <kbd className="rounded-md bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600">
                         Ctrl+V
                       </kbd>{" "}
-                      เพื่อวางรูปจากคลิปบอร์ด
+                      วางจากคลิปบอร์ด
                     </p>
                   </div>
                 </div>
               )}
             </div>
+            ) : null}
+
+            {!cameraOpen ? (
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={disabled || pending}
+                  className="h-10 gap-1.5 text-sm"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleTakePhoto();
+                  }}
+                >
+                  <Camera className="size-4" />
+                  ถ่ายรูป
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={disabled || pending}
+                  className="h-10 gap-1.5 text-sm"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handlePickGallery();
+                  }}
+                >
+                  <ImageIcon className="size-4" />
+                  เลือกรูป
+                </Button>
+              </div>
+            ) : null}
           </div>
 
           {state.nutrition ? (

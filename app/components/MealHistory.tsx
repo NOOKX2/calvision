@@ -54,7 +54,7 @@ export function MealHistory({
       {belowHeaderSlot ? (
         <div className={cn("px-5 pb-4", compact && "pt-0")}>{belowHeaderSlot}</div>
       ) : null}
-      <CardContent className={cn("space-y-4", compact && "px-5 pt-4")}>
+      <CardContent className={cn("space-y-4", compact && "px-5 pb-5 pt-4")}>
         {meals.length === 0 ? (
           <p className="text-xs leading-relaxed text-zinc-400">{emptyMessage}</p>
         ) : (

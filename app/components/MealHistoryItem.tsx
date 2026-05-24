@@ -6,6 +6,7 @@ import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import type { MealLog } from "@/lib/db/schema";
+import { mealImageSrc } from "@/lib/meals/image-url";
 import { cn } from "@/lib/utils";
 
 import { MealDeleteButton } from "./MealDeleteButton";
@@ -18,16 +19,16 @@ type MealHistoryItemProps = {
 
 export function MealHistoryItem({ meal, showSeparator }: MealHistoryItemProps) {
   const [editing, setEditing] = useState(false);
-  const hasImage = Boolean(meal.imagePath);
+  const imageSrc = mealImageSrc(meal.id, meal.imagePath);
 
   return (
     <article>
       {showSeparator ? <Separator className="mb-3 bg-zinc-100" /> : null}
       <div className="flex gap-3">
-        {hasImage ? (
+        {imageSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={`/api/meals/${meal.id}/image`}
+            src={imageSrc}
             alt={meal.foodName ?? "มื้ออาหาร"}
             className="size-16 shrink-0 rounded-xl object-cover ring-1 ring-zinc-200/80"
           />

@@ -8,27 +8,57 @@ const globalForDb = globalThis as unknown as {
   db?: ReturnType<typeof drizzle<typeof schema>>;
 };
 
-function createDb() {
+function usesSsl(connectionString: string) {
+  if (process.env.DATABASE_SSL === "false") return false;
+  if (process.env.DATABASE_SSL === "true") return true;
+  if (/sslmode=require/i.test(connectionString)) return true;
+
+  const isLocal =
+    /@(localhost|127\.0\.0\.1|db)(:\d+)?\//.test(connectionString) ||
+    connectionString.includes("@db:");
+
+  return process.env.NODE_ENV === "production" && !isLocal;
+}
+
+function isNeon(connectionString: string) {
+  return connectionString.includes("neon.tech");
+}
+
+function postgresOptions(connectionString: string) {
+  const neon = isNeon(connectionString);
+  const serverless = process.env.NODE_ENV === "production" || neon;
+
+  return {
+    max: serverless ? 1 : 10,
+    idle_timeout: serverless ? 20 : undefined,
+    connect_timeout: 15,
+    ...(usesSsl(connectionString) ? { ssl: "require" as const } : {}),
+    // Neon pooler + Vercel serverless ต้องปิด prepared statements
+    ...(neon ? { prepare: false as const } : {}),
+  };
+}
+
+function getDb() {
+  if (globalForDb.db && globalForDb.client) {
+    return globalForDb.db;
+  }
+
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error("DATABASE_URL is not set");
   }
 
-  const client =
-    globalForDb.client ?? postgres(connectionString, { max: 10 });
+  const client = postgres(connectionString, postgresOptions(connectionString));
   const db = drizzle(client, { schema });
 
-  if (process.env.NODE_ENV !== "production") {
-    globalForDb.client = client;
-    globalForDb.db = db;
-  }
+  globalForDb.client = client;
+  globalForDb.db = db;
 
   return db;
 }
 
 export const db = new Proxy({} as ReturnType<typeof drizzle<typeof schema>>, {
   get(_target, prop, receiver) {
-    const instance = globalForDb.db ?? createDb();
-    return Reflect.get(instance, prop, receiver);
+    return Reflect.get(getDb(), prop, receiver);
   },
 });

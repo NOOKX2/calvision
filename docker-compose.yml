@@ -23,6 +23,8 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql://calvision:calvision@db:5432/calvision
       WATCHPACK_POLLING: "true"
@@ -32,8 +34,7 @@ services:
       DIFY_APP_MODE: ${DIFY_APP_MODE:-workflow}
     volumes:
       - .:/app
-      - /app/node_modules
-      - /app/.next
+      - calvision_node_modules:/app/node_modules
     depends_on:
       db:
         condition: service_healthy
@@ -53,3 +54,4 @@ services:
 
 volumes:
   calvision_pg_data:
+  calvision_node_modules:

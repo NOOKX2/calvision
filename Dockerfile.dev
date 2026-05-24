@@ -8,10 +8,12 @@ RUN bun install --frozen-lockfile
 
 COPY . .
 
+RUN chmod +x docker/entrypoint-dev.sh
+
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV WATCHPACK_POLLING=true
 ENV CHOKIDAR_USEPOLLING=true
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "bun run db:migrate && bun run dev:docker"]
+CMD ["sh", "docker/entrypoint-dev.sh"]

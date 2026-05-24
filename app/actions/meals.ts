@@ -92,7 +92,7 @@ export async function analyzeAndLogMeal(
 
     const trackingDay = parseTrackingDay(formData);
     const mealId = randomUUID();
-    const imagePath = await saveMealImage(mealId, file);
+    const imageUrl = await saveMealImage(mealId, file);
 
     await db.insert(mealLogs).values({
       id: mealId,
@@ -102,7 +102,7 @@ export async function analyzeAndLogMeal(
       carbsG: nutrition.carbsG,
       fatG: nutrition.fatG,
       kcal: nutrition.kcal,
-      imagePath,
+      imagePath: imageUrl,
       loggedAt: trackingDay
         ? loggedAtForTrackingDay(trackingDay)
         : undefined,

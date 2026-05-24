@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 import {
   saveProfile,
@@ -25,11 +25,42 @@ type TdeeProfileFormProps = {
   profile: Profile | null;
 };
 
+type FormFields = {
+  sex: string;
+  age: string;
+  weightKg: string;
+  heightCm: string;
+  activityLevel: string;
+  goal: string;
+};
+
+function profileToFields(profile: Profile | null): FormFields {
+  return {
+    sex: profile?.sex ?? "male",
+    age: String(profile?.age ?? 25),
+    weightKg: String(profile?.weightKg ?? 70),
+    heightCm: String(profile?.heightCm ?? 170),
+    activityLevel: profile?.activityLevel ?? "moderate",
+    goal: profile?.goal ?? "maintain",
+  };
+}
+
+function profileFieldsKey(profile: Profile | null) {
+  if (!profile) return "new-profile";
+  return `${profile.id}-${String(profile.updatedAt)}`;
+}
+
 export function TdeeProfileForm({ profile }: TdeeProfileFormProps) {
   const [state, formAction, pending] = useActionState(
     saveProfile,
     initialState,
   );
+  const [fields, setFields] = useState(() => profileToFields(profile));
+  const fieldsKey = profileFieldsKey(profile);
+
+  useEffect(() => {
+    setFields(profileToFields(profile));
+  }, [fieldsKey, profile]);
 
   return (
     <Card>
@@ -47,7 +78,10 @@ export function TdeeProfileForm({ profile }: TdeeProfileFormProps) {
               <select
                 id="sex"
                 name="sex"
-                defaultValue={profile?.sex ?? "male"}
+                value={fields.sex}
+                onChange={(e) =>
+                  setFields((prev) => ({ ...prev, sex: e.target.value }))
+                }
                 className={appleSelect}
               >
                 <option value="male">ชาย</option>
@@ -62,7 +96,10 @@ export function TdeeProfileForm({ profile }: TdeeProfileFormProps) {
                 type="number"
                 min={10}
                 max={100}
-                defaultValue={profile?.age ?? 25}
+                value={fields.age}
+                onChange={(e) =>
+                  setFields((prev) => ({ ...prev, age: e.target.value }))
+                }
                 required
               />
             </div>
@@ -74,7 +111,10 @@ export function TdeeProfileForm({ profile }: TdeeProfileFormProps) {
                 type="number"
                 step="0.1"
                 min={1}
-                defaultValue={profile?.weightKg ?? 70}
+                value={fields.weightKg}
+                onChange={(e) =>
+                  setFields((prev) => ({ ...prev, weightKg: e.target.value }))
+                }
                 required
               />
             </div>
@@ -86,7 +126,10 @@ export function TdeeProfileForm({ profile }: TdeeProfileFormProps) {
                 type="number"
                 step="0.1"
                 min={1}
-                defaultValue={profile?.heightCm ?? 170}
+                value={fields.heightCm}
+                onChange={(e) =>
+                  setFields((prev) => ({ ...prev, heightCm: e.target.value }))
+                }
                 required
               />
             </div>
@@ -97,7 +140,13 @@ export function TdeeProfileForm({ profile }: TdeeProfileFormProps) {
             <select
               id="activityLevel"
               name="activityLevel"
-              defaultValue={profile?.activityLevel ?? "moderate"}
+              value={fields.activityLevel}
+              onChange={(e) =>
+                setFields((prev) => ({
+                  ...prev,
+                  activityLevel: e.target.value,
+                }))
+              }
               className={appleSelect}
             >
               <option value="sedentary">นั่งทำงาน แทบไม่ออกกำลัง</option>
@@ -113,7 +162,10 @@ export function TdeeProfileForm({ profile }: TdeeProfileFormProps) {
             <select
               id="goal"
               name="goal"
-              defaultValue={profile?.goal ?? "maintain"}
+              value={fields.goal}
+              onChange={(e) =>
+                setFields((prev) => ({ ...prev, goal: e.target.value }))
+              }
               className={appleSelect}
             >
               <option value="bulk">Bulk — เพิ่ม +400 kcal จาก TDEE</option>

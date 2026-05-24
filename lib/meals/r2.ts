@@ -1,40 +1,47 @@
 import {
-  DeleteObjectCommand,
-  GetObjectCommand,
-  PutObjectCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
+  getR2AccessKeyId,
+  getR2BucketName,
+  getR2Endpoint,
+  getR2SecretAccessKey,
+  isR2Configured,
+  mealImageKey,
+  objectKeyFromStored,
+  publicUrlForKey,
+} from "./r2-config";
+import { extensionForFile, contentTypeForKey } from "./mime";
 
-function requireEnv(name: string) {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`${name} is not set`);
-  }
-  return value;
+type S3Module = typeof import("@aws-sdk/client-s3");
+
+let client: InstanceType<S3Module["S3Client"]> | undefined;
+let s3Module: S3Module | undefined;
+
+async function loadS3(): Promise<S3Module> {
+  s3Module ??= await import("@aws-sdk/client-s3");
+  return s3Module;
 }
 
-export function isR2Configured() {
-  return Boolean(
-    process.env.R2_ACCOUNT_ID &&
-      process.env.R2_ACCESS_KEY_ID &&
-      process.env.R2_SECRET_ACCESS_KEY &&
-      process.env.R2_BUCKET_NAME,
-  );
-}
-
-let client: S3Client | undefined;
-
-function getR2Client() {
+async function getR2Client() {
   if (!isR2Configured()) {
     throw new Error("Cloudflare R2 is not configured");
   }
 
-  client ??= new S3Client({
+  if (client) return client;
+
+  const endpoint = getR2Endpoint();
+  const accessKeyId = getR2AccessKeyId();
+  const secretAccessKey = getR2SecretAccessKey();
+
+  if (!endpoint || !accessKeyId || !secretAccessKey) {
+    throw new Error("Cloudflare R2 is not configured");
+  }
+
+  const { S3Client } = await loadS3();
+  client = new S3Client({
     region: "auto",
-    endpoint: `https://${requireEnv("R2_ACCOUNT_ID")}.r2.cloudflarestorage.com`,
+    endpoint,
     credentials: {
-      accessKeyId: requireEnv("R2_ACCESS_KEY_ID"),
-      secretAccessKey: requireEnv("R2_SECRET_ACCESS_KEY"),
+      accessKeyId,
+      secretAccessKey,
     },
   });
 
@@ -42,7 +49,11 @@ function getR2Client() {
 }
 
 function bucketName() {
-  return requireEnv("R2_BUCKET_NAME");
+  const name = getR2BucketName();
+  if (!name) {
+    throw new Error("R2 bucket name is not set");
+  }
+  return name;
 }
 
 export async function uploadToR2(
@@ -50,7 +61,8 @@ export async function uploadToR2(
   body: Buffer,
   contentType: string,
 ) {
-  await getR2Client().send(
+  const { PutObjectCommand } = await loadS3();
+  await (await getR2Client()).send(
     new PutObjectCommand({
       Bucket: bucketName(),
       Key: key,
@@ -61,7 +73,8 @@ export async function uploadToR2(
 }
 
 export async function readFromR2(key: string) {
-  const response = await getR2Client().send(
+  const { GetObjectCommand } = await loadS3();
+  const response = await (await getR2Client()).send(
     new GetObjectCommand({
       Bucket: bucketName(),
       Key: key,
@@ -76,7 +89,8 @@ export async function readFromR2(key: string) {
 }
 
 export async function deleteFromR2(key: string) {
-  await getR2Client().send(
+  const { DeleteObjectCommand } = await loadS3();
+  await (await getR2Client()).send(
     new DeleteObjectCommand({
       Bucket: bucketName(),
       Key: key,
@@ -84,8 +98,26 @@ export async function deleteFromR2(key: string) {
   );
 }
 
-export function publicUrlForKey(key: string) {
-  const base = process.env.R2_PUBLIC_URL?.replace(/\/$/, "");
-  if (!base) return null;
-  return `${base}/${key}`;
+/** Upload meal image to R2 and return its public URL for DB storage. */
+export async function uploadMealImageToR2(mealId: string, file: File) {
+  const key = mealImageKey(mealId, extensionForFile(file));
+  const buffer = Buffer.from(await file.arrayBuffer());
+  await uploadToR2(key, buffer, contentTypeForKey(key));
+
+  const url = publicUrlForKey(key);
+  if (!url) {
+    throw new Error(
+      "R2_PUBLIC_URL (or CLOUDFLARE_R2_PUBLIC_URL) is not set — required to store meal image URLs",
+    );
+  }
+
+  return url;
+}
+
+export async function deleteMealImageFromR2(stored: string) {
+  await deleteFromR2(objectKeyFromStored(stored));
+}
+
+export async function readMealImageFromR2(stored: string) {
+  return readFromR2(objectKeyFromStored(stored));
 }

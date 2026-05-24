@@ -2,13 +2,14 @@
 
 export function mealImageSrc(
   mealId: string,
-  imagePath: string | null | undefined,
+  imageUrl: string | null | undefined,
 ) {
-  if (!imagePath) return null;
+  if (!imageUrl) return null;
 
-  if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
-    return imagePath;
+  if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+    return imageUrl;
   }
 
+  // legacy path/key before R2 URL migration
   return `/api/meals/${mealId}/image`;
 }

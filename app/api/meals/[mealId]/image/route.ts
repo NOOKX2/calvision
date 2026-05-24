@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { mealLogs } from "@/lib/db/schema";
 import { getProfileBySession } from "@/lib/data/profile";
+import { isPublicImageUrl } from "@/lib/meals/r2-config";
 import {
   contentTypeForPath,
   readMealImage,
@@ -34,6 +35,10 @@ export async function GET(_request: Request, context: RouteContext) {
 
   if (!meal || meal.profileId !== profile.id || !meal.imagePath) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  if (isPublicImageUrl(meal.imagePath)) {
+    return NextResponse.redirect(meal.imagePath);
   }
 
   try {

@@ -2,20 +2,15 @@ import { FoodUploadForm } from "@/app/components/FoodUploadForm";
 import { MealHistory } from "@/app/components/MealHistory";
 import { QuotaCard } from "@/app/components/QuotaCard";
 import { SetupBanner } from "@/app/components/SetupBanner";
-import {
-  getDashboardData,
-  getProfileBySession,
-} from "@/lib/data/profile";
-import { getSessionId } from "@/lib/session";
+import { getCurrentProfile } from "@/lib/auth/get-current-profile";
+import { getDashboardData } from "@/lib/data/profile";
 import type { Goal } from "@/lib/nutrition/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const sessionId = await getSessionId();
-  const profile = sessionId ? await getProfileBySession(sessionId) : null;
-  const dashboard =
-    sessionId && profile ? await getDashboardData(sessionId) : null;
+  const profile = await getCurrentProfile();
+  const dashboard = profile ? await getDashboardData() : null;
 
   const hasProfile = Boolean(profile);
 

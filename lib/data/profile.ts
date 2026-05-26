@@ -1,5 +1,6 @@
 import { and, eq, gte, sql } from "drizzle-orm";
 
+import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { db } from "@/lib/db";
 import { mealLogs, profiles } from "@/lib/db/schema";
 import { getTrackingDayStart } from "@/lib/nutrition/day-boundary";
@@ -11,6 +12,16 @@ export async function getProfileBySession(sessionId: string) {
     .select()
     .from(profiles)
     .where(eq(profiles.sessionId, sessionId))
+    .limit(1);
+
+  return profile ?? null;
+}
+
+export async function getProfileByUserId(userId: string) {
+  const [profile] = await db
+    .select()
+    .from(profiles)
+    .where(eq(profiles.userId, userId))
     .limit(1);
 
   return profile ?? null;
@@ -127,15 +138,13 @@ export async function getDailyQuotaForProfile(profileId: string, targets: MacroT
 }
 
 export type DashboardData = {
-  profile: NonNullable<Awaited<ReturnType<typeof getProfileBySession>>>;
+  profile: NonNullable<Awaited<ReturnType<typeof getCurrentProfile>>>;
   quota: DailyQuota;
   meals: Awaited<ReturnType<typeof getTodayMeals>>;
 };
 
-export async function getDashboardData(
-  sessionId: string,
-): Promise<DashboardData | null> {
-  const profile = await getProfileBySession(sessionId);
+export async function getDashboardData(): Promise<DashboardData | null> {
+  const profile = await getCurrentProfile();
   if (!profile) return null;
 
   const targets = profileToTargets(profile);

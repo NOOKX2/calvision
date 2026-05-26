@@ -5,16 +5,17 @@ import { revalidatePath } from "next/cache";
 
 import { db } from "@/lib/db";
 import { mealLogs } from "@/lib/db/schema";
+import { getCurrentProfile } from "@/lib/auth/get-current-profile";
+import { requireCurrentProfile } from "@/lib/auth/require-profile";
 import { analyzeFoodImage } from "@/lib/dify/client";
 import {
   deleteMealForProfile,
   deleteTodayMeals,
-  getProfileBySession,
   updateMealForProfile,
 } from "@/lib/data/profile";
 import { deleteMealImage, saveMealImage } from "@/lib/meals/images";
 import { loggedAtForTrackingDay } from "@/lib/nutrition/day-boundary";
-import { getOrCreateSessionId, getSessionId } from "@/lib/session";
+import { getOrCreateSessionId } from "@/lib/session";
 
 export type MealActionState = {
   ok: boolean;
@@ -67,6 +68,10 @@ function parseTrackingDay(formData: FormData) {
   return null;
 }
 
+function difyUserKey(profile: { id: string; sessionId: string; userId: string | null }) {
+  return profile.userId ?? profile.sessionId;
+}
+
 export async function analyzeAndLogMeal(
   _prev: MealActionState,
   formData: FormData,
@@ -77,8 +82,8 @@ export async function analyzeAndLogMeal(
     return { ok: false, message: "กรุณาเลือกรูปภาพอาหาร" };
   }
 
-  const sessionId = await getOrCreateSessionId();
-  const profile = await getProfileBySession(sessionId);
+  await getOrCreateSessionId();
+  const profile = await getCurrentProfile();
 
   if (!profile) {
     return {
@@ -88,7 +93,7 @@ export async function analyzeAndLogMeal(
   }
 
   try {
-    const nutrition = await analyzeFoodImage(file, sessionId);
+    const nutrition = await analyzeFoodImage(file, difyUserKey(profile));
 
     const trackingDay = parseTrackingDay(formData);
     const mealId = randomUUID();
@@ -131,12 +136,7 @@ export async function addManualMeal(
     return { ok: false, message: "วันที่ไม่ถูกต้อง" };
   }
 
-  const sessionId = await getSessionId();
-  if (!sessionId) {
-    return { ok: false, message: "ไม่พบ session" };
-  }
-
-  const profile = await getProfileBySession(sessionId);
+  const profile = await getCurrentProfile();
   if (!profile) {
     return { ok: false, message: "กรุณาตั้งค่าโปรไฟล์ก่อน" };
   }
@@ -177,15 +177,7 @@ export async function addManualMeal(
 }
 
 export async function deleteMeal(mealId: string) {
-  const sessionId = await getSessionId();
-  if (!sessionId) {
-    throw new Error("ไม่พบ session");
-  }
-
-  const profile = await getProfileBySession(sessionId);
-  if (!profile) {
-    throw new Error("กรุณาตั้งค่าโปรไฟล์ก่อน");
-  }
+  const profile = await requireCurrentProfile();
 
   const deleted = await deleteMealForProfile(profile.id, mealId);
   if (!deleted) {
@@ -206,12 +198,7 @@ export async function updateMeal(
     return { ok: false, message: "ไม่พบรายการอาหาร" };
   }
 
-  const sessionId = await getSessionId();
-  if (!sessionId) {
-    return { ok: false, message: "ไม่พบ session" };
-  }
-
-  const profile = await getProfileBySession(sessionId);
+  const profile = await getCurrentProfile();
   if (!profile) {
     return { ok: false, message: "กรุณาตั้งค่าโปรไฟล์ก่อน" };
   }
@@ -252,12 +239,7 @@ export async function updateMeal(
 export async function resetTodayCalories(
   _prev: ResetCaloriesState,
 ): Promise<ResetCaloriesState> {
-  const sessionId = await getSessionId();
-  if (!sessionId) {
-    return { ok: false, message: "ไม่พบ session" };
-  }
-
-  const profile = await getProfileBySession(sessionId);
+  const profile = await getCurrentProfile();
   if (!profile) {
     return {
       ok: false,

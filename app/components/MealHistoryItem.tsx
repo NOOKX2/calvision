@@ -51,6 +51,7 @@ export function MealHistoryItem({ meal, showSeparator }: MealHistoryItemProps) {
                 {new Date(meal.loggedAt).toLocaleTimeString("th-TH", {
                   hour: "2-digit",
                   minute: "2-digit",
+                  timeZone: "Asia/Bangkok",
                 })}
               </p>
             </div>

@@ -13,7 +13,8 @@ import {
 import { quotaPercent } from "@/lib/nutrition/quota";
 import type { MacroTargets } from "@/lib/nutrition/types";
 
-import { getProfileBySession, profileToTargets } from "./profile";
+import { getCurrentProfile } from "@/lib/auth/get-current-profile";
+import { profileToTargets } from "./profile";
 import type { Profile } from "@/lib/db/schema";
 
 const HISTORY_DAYS = 30;
@@ -140,10 +141,9 @@ export type HistoryPageData = {
 };
 
 export async function getHistoryPageData(
-  sessionId: string,
   selectedDay?: string | null,
 ): Promise<HistoryPageData | null> {
-  const profile = await getProfileBySession(sessionId);
+  const profile = await getCurrentProfile();
   if (!profile) return null;
 
   const targets = profileToTargets(profile);

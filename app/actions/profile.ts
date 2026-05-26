@@ -4,8 +4,10 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { getCurrentUserId } from "@/lib/auth/get-current-profile";
 import { db } from "@/lib/db";
 import { profiles } from "@/lib/db/schema";
+import { getProfileBySession, getProfileByUserId } from "@/lib/data/profile";
 import { calculateMacroTargets } from "@/lib/nutrition/tdee";
 import type { ActivityLevel, Goal, Sex } from "@/lib/nutrition/types";
 import { getOrCreateSessionId } from "@/lib/session";
@@ -58,15 +60,15 @@ export async function saveProfile(
 
   const targets = calculateMacroTargets(input);
   const sessionId = await getOrCreateSessionId();
+  const userId = await getCurrentUserId();
 
-  const [existing] = await db
-    .select({ id: profiles.id })
-    .from(profiles)
-    .where(eq(profiles.sessionId, sessionId))
-    .limit(1);
+  const existing = userId
+    ? await getProfileByUserId(userId)
+    : await getProfileBySession(sessionId);
 
   const values = {
     sessionId,
+    userId: userId ?? null,
     sex: input.sex,
     age: input.age,
     weightKg: input.weightKg,

@@ -1,14 +1,12 @@
 import { TdeeProfileForm } from "@/app/settings/components/TdeeProfileForm";
 import { ProfileSummary } from "@/app/settings/components/ProfileSummary";
 import { SettingsHeader } from "@/app/settings/components/SettingsHeader";
-import { getProfileBySession } from "@/lib/data/profile";
-import { getSessionId } from "@/lib/session";
+import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  const sessionId = await getSessionId();
-  const profile = sessionId ? await getProfileBySession(sessionId) : null;
+  const profile = await getCurrentProfile();
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-col gap-6 px-4 py-8 sm:px-6 sm:py-10">

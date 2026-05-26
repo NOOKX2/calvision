@@ -8,10 +8,9 @@ import { SetupBanner } from "@/app/components/SetupBanner";
 import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { getHistoryPageData } from "@/lib/data/history";
-import { getProfileBySession } from "@/lib/data/profile";
+import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { buildDailyQuota } from "@/lib/nutrition/quota";
 import type { Goal } from "@/lib/nutrition/types";
-import { getSessionId } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -21,13 +20,9 @@ type HistoryPageProps = {
 };
 
 export default async function HistoryPage({ searchParams }: HistoryPageProps) {
-  const sessionId = await getSessionId();
-  const profile = sessionId ? await getProfileBySession(sessionId) : null;
+  const profile = await getCurrentProfile();
   const params = await searchParams;
-  const data =
-    sessionId && profile
-      ? await getHistoryPageData(sessionId, params.day)
-      : null;
+  const data = profile ? await getHistoryPageData(params.day) : null;
 
   if (!profile) {
     return (

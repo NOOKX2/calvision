@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Prompt } from "next/font/google";
 
 import { AppNavbar } from "@/app/components/AppNavbar";
-import { getProfileBySession } from "@/lib/data/profile";
-import { getSessionId } from "@/lib/session";
+import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 
 import "./globals.css";
 
@@ -29,8 +28,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const sessionId = await getSessionId();
-  const profile = sessionId ? await getProfileBySession(sessionId) : null;
+  const profile = await getCurrentProfile();
 
   return (
     <html

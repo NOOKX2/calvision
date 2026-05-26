@@ -3,25 +3,19 @@ import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
 import { mealLogs } from "@/lib/db/schema";
-import { getProfileBySession } from "@/lib/data/profile";
+import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { isPublicImageUrl } from "@/lib/meals/r2-config";
 import {
   contentTypeForPath,
   readMealImage,
 } from "@/lib/meals/images";
-import { getSessionId } from "@/lib/session";
 
 type RouteContext = {
   params: Promise<{ mealId: string }>;
 };
 
 export async function GET(_request: Request, context: RouteContext) {
-  const sessionId = await getSessionId();
-  if (!sessionId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const profile = await getProfileBySession(sessionId);
+  const profile = await getCurrentProfile();
   if (!profile) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

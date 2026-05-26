@@ -7,9 +7,16 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+import { authUsers } from "./auth-schema";
+
+export { authAccounts, authSessions, authUsers, authVerificationTokens } from "./auth-schema";
+
 export const profiles = pgTable("profiles", {
   id: uuid("id").defaultRandom().primaryKey(),
   sessionId: text("session_id").notNull().unique(),
+  userId: text("user_id").unique().references(() => authUsers.id, {
+    onDelete: "set null",
+  }),
   sex: text("sex").notNull(),
   age: integer("age").notNull(),
   weightKg: real("weight_kg").notNull(),

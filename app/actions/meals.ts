@@ -7,7 +7,10 @@ import { db } from "@/lib/db";
 import { mealLogs } from "@/lib/db/schema";
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { requireCurrentProfile } from "@/lib/auth/require-profile";
-import { analyzeFoodImage } from "@/lib/dify/client";
+import {
+  analyzeFoodImage,
+  analyzeFoodPrompt,
+} from "@/lib/dify/client";
 import {
   deleteMealForProfile,
   deleteTodayMeals,
@@ -25,6 +28,7 @@ export type MealActionState = {
     proteinG: number;
     carbsG: number;
     fatG: number;
+    sodiumMg: number;
     kcal: number;
   };
 };
@@ -76,10 +80,15 @@ export async function analyzeAndLogMeal(
   _prev: MealActionState,
   formData: FormData,
 ): Promise<MealActionState> {
+  const prompt = String(formData.get("prompt") ?? "").trim();
   const file = formData.get("image");
+  const hasFile = file instanceof File && file.size > 0;
 
-  if (!(file instanceof File) || file.size === 0) {
-    return { ok: false, message: "กรุณาเลือกรูปภาพอาหาร" };
+  if (!hasFile && !prompt) {
+    return {
+      ok: false,
+      message: "กรุณาเลือกรูปภาพอาหาร หรือใส่ prompt เพื่อให้ระบบวิเคราะห์",
+    };
   }
 
   await getOrCreateSessionId();
@@ -93,11 +102,14 @@ export async function analyzeAndLogMeal(
   }
 
   try {
-    const nutrition = await analyzeFoodImage(file, difyUserKey(profile));
+    const userKey = difyUserKey(profile);
+    const nutrition = hasFile
+      ? await analyzeFoodImage(file, userKey, prompt || undefined)
+      : await analyzeFoodPrompt(prompt, userKey);
 
     const trackingDay = parseTrackingDay(formData);
     const mealId = randomUUID();
-    const imageUrl = await saveMealImage(mealId, file);
+    const imageUrl = hasFile ? await saveMealImage(mealId, file) : null;
 
     await db.insert(mealLogs).values({
       id: mealId,
@@ -106,6 +118,7 @@ export async function analyzeAndLogMeal(
       proteinG: nutrition.proteinG,
       carbsG: nutrition.carbsG,
       fatG: nutrition.fatG,
+      sodiumMg: nutrition.sodiumMg,
       kcal: nutrition.kcal,
       imagePath: imageUrl,
       loggedAt: trackingDay
@@ -122,7 +135,9 @@ export async function analyzeAndLogMeal(
     };
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "ไม่สามารถวิเคราะห์รูปภาพได้";
+      error instanceof Error
+        ? error.message
+        : "ไม่สามารถวิเคราะห์อาหารได้";
     return { ok: false, message };
   }
 }
@@ -150,10 +165,20 @@ export async function addManualMeal(
     const proteinG = parseMacroField(formData.get("proteinG"), "โปรตีน");
     const carbsG = parseMacroField(formData.get("carbsG"), "คาร์บ");
     const fatG = parseMacroField(formData.get("fatG"), "ไขมัน");
+    const sodiumMg = parseMacroField(formData.get("sodiumMg"), "โซเดียม");
     const kcal = parseKcalField(formData.get("kcal"));
 
-    if (kcal === 0 && proteinG === 0 && carbsG === 0 && fatG === 0) {
-      return { ok: false, message: "กรุณาระบุแคลอรี่หรือโมครองค์อย่างน้อยหนึ่งค่า" };
+    if (
+      kcal === 0 &&
+      proteinG === 0 &&
+      carbsG === 0 &&
+      fatG === 0 &&
+      sodiumMg === 0
+    ) {
+      return {
+        ok: false,
+        message: "กรุณาระบุแคลอรี่หรือโมครองค์อย่างน้อยหนึ่งค่า (รวมโซเดียมได้)",
+      };
     }
 
     await db.insert(mealLogs).values({
@@ -162,6 +187,7 @@ export async function addManualMeal(
       proteinG,
       carbsG,
       fatG,
+      sodiumMg,
       kcal,
       loggedAt: loggedAtForTrackingDay(trackingDay),
     });
@@ -212,6 +238,7 @@ export async function updateMeal(
     const proteinG = parseMacroField(formData.get("proteinG"), "โปรตีน");
     const carbsG = parseMacroField(formData.get("carbsG"), "คาร์บ");
     const fatG = parseMacroField(formData.get("fatG"), "ไขมัน");
+    const sodiumMg = parseMacroField(formData.get("sodiumMg"), "โซเดียม");
     const kcal = parseKcalField(formData.get("kcal"));
 
     const updated = await updateMealForProfile(profile.id, mealId, {
@@ -219,6 +246,7 @@ export async function updateMeal(
       proteinG,
       carbsG,
       fatG,
+      sodiumMg,
       kcal,
     });
 

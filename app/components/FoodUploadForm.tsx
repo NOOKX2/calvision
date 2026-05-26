@@ -68,6 +68,7 @@ export function FoodUploadForm({
   const [hasFile, setHasFile] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [fileHint, setFileHint] = useState<string | null>(null);
+  const [promptText, setPromptText] = useState("");
   const [cameraOpen, setCameraOpen] = useState(false);
 
   const clearSelection = useCallback(() => {
@@ -76,6 +77,7 @@ export function FoodUploadForm({
     if (cameraInputRef.current) cameraInputRef.current.value = "";
     setHasFile(false);
     setFileHint(null);
+    setPromptText("");
     setPreviewUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
       return null;
@@ -105,7 +107,11 @@ export function FoodUploadForm({
   // หลัง submit สำเร็จ (pending กลับเป็น false + state.ok) → ล้าง preview
   useEffect(() => {
     if (!pending && state.ok) {
-      clearSelection();
+      const schedule =
+        typeof queueMicrotask === "function"
+          ? queueMicrotask
+          : (fn: () => void) => setTimeout(fn, 0);
+      schedule(() => clearSelection());
       onSuccess?.();
     }
   }, [pending, state.ok, clearSelection, onSuccess]);
@@ -187,6 +193,7 @@ export function FoodUploadForm({
   }
 
   const hasPreview = Boolean(previewUrl);
+  const hasPrompt = promptText.trim().length > 0;
 
   const dropZoneClassName = cn(
     "relative rounded-2xl border-2 border-dashed transition-all",
@@ -303,7 +310,7 @@ export function FoodUploadForm({
               htmlFor={inputId}
               className={cn(hero && "text-sm text-zinc-600")}
             >
-              {hero ? "รูปอาหาร" : "รูปภาพอาหาร"}
+              {hero ? "รูปอาหาร (ไม่บังคับ)" : "รูปภาพอาหาร (ไม่บังคับ)"}
             </Label>
 
             <input
@@ -313,7 +320,7 @@ export function FoodUploadForm({
               type="file"
               accept="image/*"
               disabled={disabled || pending}
-              required={!hasFile}
+              required={!hasFile && !hasPrompt}
               className="sr-only"
               tabIndex={-1}
               aria-hidden
@@ -457,12 +464,38 @@ export function FoodUploadForm({
             ) : null}
           </div>
 
+          <div className="space-y-2">
+            <Label
+              htmlFor="prompt"
+              className={cn(hero && "text-sm text-zinc-600")}
+            >
+              Prompt (พิมพ์แทนรูปได้)
+            </Label>
+            <textarea
+              id="prompt"
+              name="prompt"
+              value={promptText}
+              onChange={(e) => setPromptText(e.target.value)}
+              placeholder="เช่น ข้าวผัดไก่ 1 จาน / ก๋วยเตี๋ยวน้ำตก 1 ชาม (ประมาณตามที่เห็นจริง)"
+              disabled={disabled || pending}
+              rows={3}
+              className={cn(
+                "w-full resize-none rounded-2xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400",
+                "focus:outline-none focus:ring-2 focus:ring-zinc-900/10",
+                (disabled || pending) && "opacity-60",
+              )}
+            />
+            <p className="text-[11px] leading-relaxed text-zinc-400">
+              ถ้ามีทั้งรูปและ prompt ระบบจะใช้ prompt เป็นคำอธิบายเพิ่มเติมให้ด้วย
+            </p>
+          </div>
+
           {state.nutrition ? (
             <div className="rounded-2xl bg-zinc-100/70 p-4 text-sm">
               <p className="font-semibold text-zinc-900">
                 {state.nutrition.foodName}
               </p>
-              <dl className="mt-3 grid grid-cols-2 gap-3 text-xs text-zinc-500 sm:grid-cols-4">
+              <dl className="mt-3 grid grid-cols-2 gap-3 text-xs text-zinc-500 sm:grid-cols-5">
                 <div>
                   <dt>โปรตีน</dt>
                   <dd className="mt-0.5 text-sm font-semibold text-zinc-900">
@@ -479,6 +512,12 @@ export function FoodUploadForm({
                   <dt>ไขมัน</dt>
                   <dd className="mt-0.5 text-sm font-semibold text-zinc-900">
                     {state.nutrition.fatG} g
+                  </dd>
+                </div>
+                <div>
+                  <dt>โซเดียม</dt>
+                  <dd className="mt-0.5 text-sm font-semibold text-zinc-900">
+                    {state.nutrition.sodiumMg} mg
                   </dd>
                 </div>
                 <div>
@@ -503,7 +542,7 @@ export function FoodUploadForm({
 
           <Button
             type="submit"
-            disabled={disabled || pending || !hasFile}
+            disabled={disabled || pending || (!hasFile && !hasPrompt)}
             className={cn(
               "w-full",
               hero && "h-11 text-base",

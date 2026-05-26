@@ -26,11 +26,12 @@ function QuotaProgressBar({ value, className }: { value: number; className?: str
 
 type MacroRowProps = {
   label: string;
+  unit: string;
   consumed: number;
   target: number;
 };
 
-function MacroRow({ label, consumed, target }: MacroRowProps) {
+function MacroRow({ label, unit, consumed, target }: MacroRowProps) {
   const percent = quotaPercent(consumed, target);
 
   return (
@@ -38,11 +39,9 @@ function MacroRow({ label, consumed, target }: MacroRowProps) {
       <div className="flex items-center justify-between gap-3">
         <span className="text-xs font-medium text-zinc-600">{label}</span>
         <span className="shrink-0 text-xs tabular-nums text-zinc-500">
-          <span className="font-semibold text-zinc-800">
-            {Math.round(consumed)}g
-          </span>
+          <span className="font-semibold text-zinc-800">{Math.round(consumed)}{unit}</span>
           <span className="text-zinc-300"> / </span>
-          {Math.round(target)}g
+          {Math.round(target)}{unit}
           <span className="text-zinc-400"> ({percent}%)</span>
         </span>
       </div>
@@ -95,18 +94,27 @@ export function SidebarQuotaPanel({
       <div className="space-y-2.5">
         <MacroRow
           label="โปรตีน"
+          unit="g"
           consumed={consumed.proteinG}
           target={targets.targetProteinG}
         />
         <MacroRow
           label="คาร์บ"
+          unit="g"
           consumed={consumed.carbsG}
           target={targets.targetCarbsG}
         />
         <MacroRow
           label="ไขมัน"
+          unit="g"
           consumed={consumed.fatG}
           target={targets.targetFatG}
+        />
+        <MacroRow
+          label="โซเดียม"
+          unit="mg"
+          consumed={consumed.sodiumMg}
+          target={targets.targetSodiumMg}
         />
       </div>
     </div>

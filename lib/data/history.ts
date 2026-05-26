@@ -29,6 +29,7 @@ export type DailySummary = {
     proteinG: number;
     carbsG: number;
     fatG: number;
+    sodiumMg: number;
   };
   targetKcal: number;
   percent: number;
@@ -50,6 +51,7 @@ const emptyConsumed = () => ({
   proteinG: 0,
   carbsG: 0,
   fatG: 0,
+  sodiumMg: 0,
 });
 
 export async function getDailySummaries(
@@ -89,6 +91,7 @@ export async function getDailySummaries(
     bucket.consumed.proteinG += meal.proteinG;
     bucket.consumed.carbsG += meal.carbsG;
     bucket.consumed.fatG += meal.fatG;
+    bucket.consumed.sodiumMg += meal.sodiumMg;
     byDay.set(key, bucket);
   }
 

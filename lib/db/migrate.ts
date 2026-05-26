@@ -31,6 +31,9 @@ async function ensureSchemaPatches(client: postgres.Sql) {
   await client.unsafe(
     'ALTER TABLE "meal_logs" ADD COLUMN IF NOT EXISTS "image_path" text',
   );
+  await client.unsafe(
+    'ALTER TABLE "meal_logs" ADD COLUMN IF NOT EXISTS "sodium_mg" real NOT NULL DEFAULT 0',
+  );
 }
 
 async function runMigrations() {

@@ -23,10 +23,9 @@ export function MacroQuotaRow({
   dense,
 }: MacroQuotaRowProps) {
   const percent = quotaPercent(consumed, target);
+  const unitLabel = unit.trim();
 
   if (dense) {
-    const unitLabel = unit.trim();
-
     return (
       <div className="space-y-1">
         <div className="flex items-center justify-between gap-2 text-[11px] leading-none">
@@ -53,15 +52,12 @@ export function MacroQuotaRow({
       <div className="flex items-baseline justify-between gap-4">
         <span className="text-sm font-semibold text-zinc-900">{label}</span>
         <span className="text-xs tabular-nums text-zinc-500">
-          {consumed.toFixed(1)}
-          {unit} / {target.toFixed(1)}
-          {unit}
+          {consumed.toFixed(1)} {unitLabel} / {target.toFixed(1)} {unitLabel}
         </span>
       </div>
       <Progress value={percent} />
       <p className="text-[11px] text-zinc-400">
-        เหลือ {remaining.toFixed(1)}
-        {unit} · {percent}%
+        เหลือ {remaining.toFixed(1)} {unitLabel} · {percent}%
       </p>
     </div>
   );

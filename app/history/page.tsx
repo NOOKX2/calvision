@@ -43,6 +43,7 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
     proteinG: 0,
     carbsG: 0,
     fatG: 0,
+    sodiumMg: 0,
   };
   const quota = buildDailyQuota(data.targets, consumed);
   const diff = consumed.kcal - data.targets.targetKcal;

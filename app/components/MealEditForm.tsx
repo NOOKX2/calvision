@@ -45,7 +45,7 @@ export function MealEditForm({ meal, onDone }: MealEditFormProps) {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
         <div className="space-y-1.5">
           <Label htmlFor={`protein-${meal.id}`} className="text-[11px]">
             โปรตีน (g)
@@ -87,6 +87,21 @@ export function MealEditForm({ meal, onDone }: MealEditFormProps) {
             min={0}
             step={0.1}
             defaultValue={meal.fatG}
+            required
+            className="h-9 rounded-lg border-0 bg-white text-sm tabular-nums"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor={`sodium-${meal.id}`} className="text-[11px]">
+            โซเดียม (mg)
+          </Label>
+          <Input
+            id={`sodium-${meal.id}`}
+            name="sodiumMg"
+            type="number"
+            min={0}
+            step={1}
+            defaultValue={meal.sodiumMg ?? 0}
             required
             className="h-9 rounded-lg border-0 bg-white text-sm tabular-nums"
           />

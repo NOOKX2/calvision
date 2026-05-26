@@ -34,12 +34,17 @@ export function profileToTargets(profile: {
   targetCarbsG: number;
   targetFatG: number;
 }): MacroTargets {
+  // Using a conservative daily target so sodium can participate in "quota today" UI.
+  // If you later want it tied to a profile setting, we can move it into the DB/profile model.
+  const targetSodiumMg = 2000;
+
   return {
     tdee: profile.tdee,
     targetKcal: profile.targetKcal,
     targetProteinG: profile.targetProteinG,
     targetCarbsG: profile.targetCarbsG,
     targetFatG: profile.targetFatG,
+    targetSodiumMg,
   };
 }
 
@@ -98,6 +103,7 @@ export async function updateMealForProfile(
     proteinG: number;
     carbsG: number;
     fatG: number;
+    sodiumMg: number;
     kcal: number;
   },
 ) {
@@ -108,6 +114,7 @@ export async function updateMealForProfile(
       proteinG: data.proteinG,
       carbsG: data.carbsG,
       fatG: data.fatG,
+      sodiumMg: data.sodiumMg,
       kcal: data.kcal,
     })
     .where(
@@ -126,9 +133,10 @@ export async function getDailyQuotaForProfile(profileId: string, targets: MacroT
       proteinG: acc.proteinG + meal.proteinG,
       carbsG: acc.carbsG + meal.carbsG,
       fatG: acc.fatG + meal.fatG,
+      sodiumMg: acc.sodiumMg + meal.sodiumMg,
       kcal: acc.kcal + meal.kcal,
     }),
-    { proteinG: 0, carbsG: 0, fatG: 0, kcal: 0 },
+    { proteinG: 0, carbsG: 0, fatG: 0, sodiumMg: 0, kcal: 0 },
   );
 
   return {

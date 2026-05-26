@@ -22,6 +22,7 @@ export type MacroTargets = {
   targetProteinG: number;
   targetCarbsG: number;
   targetFatG: number;
+  targetSodiumMg: number;
 };
 
 export type FoodNutrition = {
@@ -29,6 +30,7 @@ export type FoodNutrition = {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  sodiumMg: number;
   kcal: number;
 };
 
@@ -37,6 +39,7 @@ export type DailyQuota = {
     proteinG: number;
     carbsG: number;
     fatG: number;
+    sodiumMg: number;
     kcal: number;
   };
   targets: MacroTargets;
@@ -44,6 +47,7 @@ export type DailyQuota = {
     proteinG: number;
     carbsG: number;
     fatG: number;
+    sodiumMg: number;
     kcal: number;
   };
 };

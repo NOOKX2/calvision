@@ -59,7 +59,12 @@ export function TdeeProfileForm({ profile }: TdeeProfileFormProps) {
   const fieldsKey = profileFieldsKey(profile);
 
   useEffect(() => {
-    setFields(profileToFields(profile));
+    const schedule =
+      typeof queueMicrotask === "function"
+        ? queueMicrotask
+        : (fn: () => void) => setTimeout(fn, 0);
+
+    schedule(() => setFields(profileToFields(profile)));
   }, [fieldsKey, profile]);
 
   return (

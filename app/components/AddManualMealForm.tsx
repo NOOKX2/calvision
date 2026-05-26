@@ -38,15 +38,29 @@ function useAddMealForm({ trackingDay, dayLabel }: UseAddMealFormOptions) {
   const dayText = dayLabel ? ` ${dayLabel}` : " วันที่เลือก";
 
   useEffect(() => {
-    setOpen(false);
-    setManualKey((k) => k + 1);
-    setUploadKey((k) => k + 1);
+    const schedule =
+      typeof queueMicrotask === "function"
+        ? queueMicrotask
+        : (fn: () => void) => setTimeout(fn, 0);
+
+    schedule(() => {
+      setOpen(false);
+      setManualKey((k) => k + 1);
+      setUploadKey((k) => k + 1);
+    });
   }, [trackingDay]);
 
   useEffect(() => {
     if (manualState.ok) {
-      setOpen(false);
-      setManualKey((k) => k + 1);
+      const schedule =
+        typeof queueMicrotask === "function"
+          ? queueMicrotask
+          : (fn: () => void) => setTimeout(fn, 0);
+
+      schedule(() => {
+        setOpen(false);
+        setManualKey((k) => k + 1);
+      });
     }
   }, [manualState.ok]);
 
@@ -157,7 +171,7 @@ function AddMealExpandedPanel({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
               <div className="space-y-1.5">
                 <Label
                   htmlFor={`add-p-${trackingDay}`}
@@ -205,6 +219,23 @@ function AddMealExpandedPanel({
                   type="number"
                   min={0}
                   step={0.1}
+                  defaultValue={0}
+                  className="h-10 rounded-xl border-0 bg-white text-sm tabular-nums"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor={`add-s-${trackingDay}`}
+                  className="text-xs text-zinc-600"
+                >
+                  โซเดียม (mg)
+                </Label>
+                <Input
+                  id={`add-s-${trackingDay}`}
+                  name="sodiumMg"
+                  type="number"
+                  min={0}
+                  step={1}
                   defaultValue={0}
                   className="h-10 rounded-xl border-0 bg-white text-sm tabular-nums"
                 />

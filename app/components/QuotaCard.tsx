@@ -69,6 +69,14 @@ function QuotaRows({
         target={targets.targetFatG}
         remaining={remaining.fatG}
       />
+      <MacroQuotaRow
+        dense={dense}
+        label="โซเดียม"
+        unit=" mg"
+        consumed={consumed.sodiumMg}
+        target={targets.targetSodiumMg}
+        remaining={remaining.sodiumMg}
+      />
     </>
   );
 }

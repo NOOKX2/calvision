@@ -13,6 +13,7 @@ export function buildDailyQuota(
       proteinG: Math.max(0, targets.targetProteinG - consumed.proteinG),
       carbsG: Math.max(0, targets.targetCarbsG - consumed.carbsG),
       fatG: Math.max(0, targets.targetFatG - consumed.fatG),
+      sodiumMg: Math.max(0, targets.targetSodiumMg - consumed.sodiumMg),
       kcal: Math.max(0, targets.targetKcal - consumed.kcal),
     },
   };

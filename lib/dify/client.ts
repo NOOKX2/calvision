@@ -20,6 +20,9 @@ const nutritionSchema = z
     fat_g: z.coerce.number().optional(),
     fatG: z.coerce.number().optional(),
     fat: z.coerce.number().optional(),
+    sodium_mg: z.coerce.number().optional(),
+    sodiumMg: z.coerce.number().optional(),
+    sodium: z.coerce.number().optional(),
     kcal: z.coerce.number().optional(),
     calories: z.coerce.number().optional(),
     calorie: z.coerce.number().optional(),
@@ -38,6 +41,7 @@ const THAI_KEY_MAP: Record<string, string> = {
   คาร์บ: "carbs_g",
   คาร์โบไฮเดรต: "carbs_g",
   ไขมัน: "fat_g",
+  โซเดียม: "sodium_mg",
   แคลอรี่: "kcal",
   พลังงาน: "kcal",
 };
@@ -120,7 +124,7 @@ function tryParseJson(text: string): unknown | null {
 
 function hasNutritionSignals(value: Record<string, unknown>) {
   const keys = Object.keys(value).join(" ").toLowerCase();
-  return /protein|carb|fat|kcal|calorie|โปรตีน|คาร์บ|ไขมัน|แคลอรี่/.test(
+  return /protein|carb|fat|kcal|calorie|sodium|โซเดียม|โปรตีน|คาร์บ|ไขมัน|แคลอรี่/.test(
     keys,
   );
 }
@@ -213,6 +217,13 @@ function parseNutritionPayload(raw: unknown): FoodNutrition {
     parseMacro(parsed.fat_g) ||
     parseMacro(parsed.fatG) ||
     parseMacro(parsed.fat);
+  const sodiumMg =
+    parseMacro(c["sodium_mg"]) ||
+    parseMacro(c["sodiumMg"]) ||
+    parseMacro(c["sodium"]) ||
+    parseMacro(parsed["sodium_mg"]) ||
+    parseMacro(parsed["sodiumMg"]) ||
+    parseMacro(parsed["sodium"]);
   const kcal = Math.round(
     parseMacro(c.kcal) ||
       parseMacro(parsed.kcal) ||
@@ -230,7 +241,7 @@ function parseNutritionPayload(raw: unknown): FoodNutrition {
         "",
     ).trim() || "อาหารที่วิเคราะห์แล้ว";
 
-  if (proteinG === 0 && carbsG === 0 && fatG === 0 && kcal === 0) {
+  if (proteinG === 0 && carbsG === 0 && fatG === 0 && sodiumMg === 0 && kcal === 0) {
     const rawPreview = JSON.stringify(candidate).slice(0, 280);
     throw new Error(
       `Dify ส่ง JSON ถูกรูปแบบแล้ว แต่ตัวเลขเป็น 0 ทั้งหมด (มักเพราะ LLM มองรูปไม่เห็น หรือ copy ตัวอย่างใน prompt) | ค่าที่ได้: ${rawPreview}`,
@@ -242,6 +253,7 @@ function parseNutritionPayload(raw: unknown): FoodNutrition {
     proteinG,
     carbsG,
     fatG,
+    sodiumMg,
     kcal,
   };
 }
@@ -280,8 +292,9 @@ function logDifyResponse(json: Record<string, unknown>) {
 export async function analyzeFoodImage(
   file: File,
   user: string,
+  prompt?: string,
 ): Promise<FoodNutrition> {
-  const { apiKey, baseUrl, mode } = getDifyConfig();
+  const { apiKey, baseUrl } = getDifyConfig();
   const uploadFileId = await uploadImage(file, user);
 
   const filePayload = {
@@ -290,30 +303,36 @@ export async function analyzeFoodImage(
     upload_file_id: uploadFileId,
   };
 
-  const endpoint =
-    mode === "chat"
-      ? `${baseUrl}/v1/chat-messages`
-      : `${baseUrl}/v1/workflows/run`;
+  const cleanPrompt = prompt?.trim();
+  const queryBase =
+    "Analyze this food image. Respond with JSON only, realistic estimated numbers from the photo (not zeros). Keys: food_name, protein_g, carbs_g, fat_g, sodium_mg, kcal.";
 
-  const body =
-    mode === "chat"
-      ? {
-          inputs: {},
-          query:
-            "Analyze this food image. Respond with JSON only, realistic estimated numbers from the photo (not zeros). Keys: food_name, protein_g, carbs_g, fat_g, kcal.",
-          response_mode: "blocking",
-          user,
-          files: [filePayload],
-        }
-      : {
-          inputs: {
-            // Dify workflow "File list" / multi-file inputs expect an array of file refs
-            image: [filePayload],
-            food_image: [filePayload],
-          },
-          response_mode: "blocking",
-          user,
-        };
+  // เพื่อให้ส่ง/ขอผลลัพธ์ที่มีโซเดียมด้วย ใช้ chat-messages เสมอ
+  // (รองรับการแนบไฟล์รูปด้วย)
+  const shouldUseChat = true;
+  const endpoint = shouldUseChat
+    ? `${baseUrl}/v1/chat-messages`
+    : `${baseUrl}/v1/workflows/run`;
+
+  const body = shouldUseChat
+    ? {
+        inputs: {},
+        query: cleanPrompt
+          ? `${queryBase}\nAdditional instruction: ${cleanPrompt}`
+          : queryBase,
+        response_mode: "blocking",
+        user,
+        files: [filePayload],
+      }
+    : {
+        inputs: {
+          // Dify workflow "File list" / multi-file inputs expect an array of file refs
+          image: [filePayload],
+          food_image: [filePayload],
+        },
+        response_mode: "blocking",
+        user,
+      };
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), WORKFLOW_TIMEOUT_MS);
@@ -352,6 +371,70 @@ export async function analyzeFoodImage(
   if (!found) {
     throw new Error(
       `อ่านผลจาก Dify ไม่ได้ — ตรวจสอบว่า workflow ส่ง JSON โภชนาการใน outputs (keys ที่ได้: ${listTopLevelKeys(json)})`,
+    );
+  }
+
+  return parseNutritionPayload(found);
+}
+
+export async function analyzeFoodPrompt(
+  prompt: string,
+  user: string,
+): Promise<FoodNutrition> {
+  const cleanPrompt = prompt.trim();
+  if (!cleanPrompt) {
+    throw new Error("prompt is empty");
+  }
+
+  const { apiKey, baseUrl } = getDifyConfig();
+  const endpoint = `${baseUrl}/v1/chat-messages`;
+
+  const query =
+    "Using the following food description, estimate realistic estimated numbers for macros, sodium, and kcal. Respond with JSON only (not zeros). Keys: food_name, protein_g, carbs_g, fat_g, sodium_mg, kcal.\n" +
+    `Description: ${cleanPrompt}`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), WORKFLOW_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        inputs: {},
+        query,
+        response_mode: "blocking",
+        user,
+      }),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(
+        "Dify ใช้เวลานานเกินไป (timeout) — ลองใหม่ หรือทำ prompt ให้สั้นลง",
+      );
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(formatDifyError(detail, response.status));
+  }
+
+  const json = (await response.json()) as Record<string, unknown>;
+  logDifyResponse(json);
+
+  const found = deepFindNutritionPayload(json);
+  if (!found) {
+    throw new Error(
+      `อ่านผลจาก Dify ไม่ได้ — ตรวจสอบว่า response ส่ง JSON โภชนาการใน outputs (keys ที่ได้: ${listTopLevelKeys(json)})`,
     );
   }
 

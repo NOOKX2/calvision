@@ -82,7 +82,7 @@ export function MealHistoryItem({ meal, showSeparator }: MealHistoryItemProps) {
           {!editing ? (
             <dl
               className={cn(
-                "mt-2.5 grid grid-cols-3 gap-3 text-[10px] text-zinc-500",
+                "mt-2.5 grid grid-cols-4 gap-3 text-[10px] text-zinc-500",
               )}
             >
               <div>
@@ -101,6 +101,12 @@ export function MealHistoryItem({ meal, showSeparator }: MealHistoryItemProps) {
                 <dt>ไขมัน</dt>
                 <dd className="mt-0.5 text-xs font-semibold tabular-nums text-zinc-800">
                   {meal.fatG}g
+                </dd>
+              </div>
+              <div>
+                <dt>โซเดียม</dt>
+                <dd className="mt-0.5 text-xs font-semibold tabular-nums text-zinc-800">
+                  {meal.sodiumMg} mg
                 </dd>
               </div>
             </dl>

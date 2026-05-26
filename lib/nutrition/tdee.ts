@@ -35,6 +35,9 @@ export function calculateMacroTargets(input: ProfileInput): MacroTargets {
       ((targetKcal - targetProteinG * 4 - targetFatG * 9) / 4) * 10,
     ) / 10,
   );
+  // Use a conservative constant target so sodium can display in "quota today".
+  // If you add sodium target to profile later, we can wire it through.
+  const targetSodiumMg = 2000;
 
   return {
     tdee,
@@ -42,6 +45,7 @@ export function calculateMacroTargets(input: ProfileInput): MacroTargets {
     targetProteinG,
     targetCarbsG,
     targetFatG,
+    targetSodiumMg,
   };
 }
 

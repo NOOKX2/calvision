@@ -45,6 +45,7 @@ export const mealLogs = pgTable("meal_logs", {
   proteinG: real("protein_g").notNull(),
   carbsG: real("carbs_g").notNull(),
   fatG: real("fat_g").notNull(),
+  sodiumMg: real("sodium_mg").notNull().default(0),
   kcal: integer("kcal").notNull(),
   imagePath: text("image_path"),
   loggedAt: timestamp("logged_at", { withTimezone: true })

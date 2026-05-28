@@ -65,6 +65,24 @@ function formatDifyError(detail: string, status?: number) {
     return "Dify ใช้เวลานานเกินไป (504) — ลองใหม่อีกครั้ง";
   }
 
+  try {
+    const parsed = JSON.parse(trimmed) as {
+      code?: string;
+      message?: string;
+    };
+    if (parsed.code === "not_chat_app") {
+      return "Dify app เป็น Workflow แต่ระบบเรียก Chat API — ตั้ง DIFY_APP_MODE=workflow ใน .env (หรือใช้ Chat App + DIFY_APP_MODE=chat)";
+    }
+    if (parsed.code === "not_workflow_app") {
+      return "Dify app เป็น Chat แต่ระบบเรียก Workflow API — ตั้ง DIFY_APP_MODE=chat ใน .env";
+    }
+    if (parsed.message) {
+      return parsed.message;
+    }
+  } catch {
+    // not JSON
+  }
+
   const oneLine = trimmed.replace(/\s+/g, " ").slice(0, 280);
   return oneLine || "Dify วิเคราะห์ไม่สำเร็จ";
 }
@@ -294,7 +312,7 @@ export async function analyzeFoodImage(
   user: string,
   prompt?: string,
 ): Promise<FoodNutrition> {
-  const { apiKey, baseUrl } = getDifyConfig();
+  const { apiKey, baseUrl, mode } = getDifyConfig();
   const uploadFileId = await uploadImage(file, user);
 
   const filePayload = {
@@ -307,9 +325,7 @@ export async function analyzeFoodImage(
   const queryBase =
     "Analyze this food image. Respond with JSON only, realistic estimated numbers from the photo (not zeros). Keys: food_name, protein_g, carbs_g, fat_g, sodium_mg, kcal.";
 
-  // เพื่อให้ส่ง/ขอผลลัพธ์ที่มีโซเดียมด้วย ใช้ chat-messages เสมอ
-  // (รองรับการแนบไฟล์รูปด้วย)
-  const shouldUseChat = true;
+  const shouldUseChat = mode === "chat";
   const endpoint = shouldUseChat
     ? `${baseUrl}/v1/chat-messages`
     : `${baseUrl}/v1/workflows/run`;
@@ -386,10 +402,13 @@ export async function analyzeFoodPrompt(
     throw new Error("prompt is empty");
   }
 
-  const { apiKey, baseUrl } = getDifyConfig();
-  const endpoint = `${baseUrl}/v1/chat-messages`;
+  const { apiKey, baseUrl, mode } = getDifyConfig();
+  const shouldUseChat = mode === "chat";
+  const endpoint = shouldUseChat
+    ? `${baseUrl}/v1/chat-messages`
+    : `${baseUrl}/v1/workflows/run`;
 
-  const query =
+  const instruction =
     "Using the following food description, estimate realistic estimated numbers for macros, sodium, and kcal. Respond with JSON only (not zeros). Keys: food_name, protein_g, carbs_g, fat_g, sodium_mg, kcal.\n" +
     `Description: ${cleanPrompt}`;
 
@@ -404,12 +423,23 @@ export async function analyzeFoodPrompt(
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        inputs: {},
-        query,
-        response_mode: "blocking",
-        user,
-      }),
+      body: JSON.stringify(
+        shouldUseChat
+          ? {
+              inputs: {},
+              query: instruction,
+              response_mode: "blocking",
+              user,
+            }
+          : {
+              inputs: {
+                query: instruction,
+                prompt: cleanPrompt,
+              },
+              response_mode: "blocking",
+              user,
+            },
+      ),
       signal: controller.signal,
     });
   } catch (error) {
